@@ -14,16 +14,6 @@ bool_flag(
 )
 
 bzl_library(
-    name = "repositories",
-    srcs = ["repositories.bzl"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "@bazel_tools//tools/build_defs/repo:http.bzl",
-        "@bazel_tools//tools/build_defs/repo:utils.bzl",
-    ],
-)
-
-bzl_library(
     name = "mtree",
     srcs = ["mtree.bzl"],
     visibility = ["//visibility:public"],
