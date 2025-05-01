@@ -31,7 +31,7 @@ repos:
       - id: trailing-whitespace
   # Check formatting and lint for starlark code
   - repo: https://github.com/keith/pre-commit-buildifier
-    rev: 7.3.1.1
+    rev: 8.0.3
     hooks:
       - id: buildifier
       - id: buildifier-lint
@@ -50,10 +50,6 @@ repos:
     rev: v0.14.0
     hooks:
       - id: yamlfmt
-        exclude: |
-          (?x)^(
-            .bcr/config.yml
-          )
   - repo: https://github.com/crate-ci/typos
     rev: v1.28.4
     hooks:
