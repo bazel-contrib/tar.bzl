@@ -1,55 +1,5 @@
-"""General-purpose rule to create tar archives.
-
-Unlike [pkg_tar from rules_pkg](https://github.com/bazelbuild/rules_pkg/blob/main/docs/latest.md#pkg_tar):
-
-- It does not depend on any Python interpreter setup
-- The "manifest" specification is a mature public API and uses a compact tabular format, fixing
-  https://github.com/bazelbuild/rules_pkg/pull/238
-- It doesn't rely custom program to produce the output, instead
-  we rely on the well-known C++ program called "tar".
-  Specifically, we use the BSD variant of tar since it provides a means
-  of controlling mtimes, uid, symlinks, etc.
-
-We also provide full control for tar'ring binaries including their runfiles.
-
-The `tar` binary is hermetic and fully statically-linked.
-It is fetched as a toolchain from https://github.com/aspect-build/bsdtar-prebuilt.
-
-## Examples
-
-See the [`tar` tests](/tar/tests/BUILD.bazel) for examples of usage.
-
-## Mutating the tar contents
-
-The `mtree_spec` rule can be used to create an mtree manifest for the tar file.
-Then you can mutate that spec using `mtree_mutate` and feed the result
-as the `mtree` attribute of the `tar` rule.
-
-For example, to set the owner uid of files in the tar, you could:
-
-```starlark
-_TAR_SRCS = ["//some:files"]
-
-mtree_spec(
-    name = "mtree",
-    srcs = _TAR_SRCS,
-)
-
-mtree_mutate(
-    name = "change_owner",
-    mtree = ":mtree",
-    owner = "1000",
-)
-
-tar(
-    name = "tar",
-    srcs = _TAR_SRCS,
-    mtree = "change_owner",
-)
-```
-
-TODO:
-- Provide convenience for rules_pkg users to re-use or replace pkg_files trees
+"""
+API for calling tar, see https://man.freebsd.org/cgi/man.cgi?tar(1)
 """
 
 load("@aspect_bazel_lib//lib:expand_template.bzl", "expand_template")

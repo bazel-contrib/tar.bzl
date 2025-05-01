@@ -1,4 +1,34 @@
-"Helpers for mtree(8)"
+"""Helpers for mtree(8), see https://man.freebsd.org/cgi/man.cgi?mtree(8)
+
+### Mutating the tar contents
+
+The `mtree_spec` rule can be used to create an mtree manifest for the tar file.
+Then you can mutate that spec using `mtree_mutate` and feed the result
+as the `mtree` attribute of the `tar` rule.
+
+For example, to set the owner uid of files in the tar, you could:
+
+```starlark
+_TAR_SRCS = ["//some:files"]
+
+mtree_spec(
+    name = "mtree",
+    srcs = _TAR_SRCS,
+)
+
+mtree_mutate(
+    name = "change_owner",
+    mtree = ":mtree",
+    owner = "1000",
+)
+
+tar(
+    name = "tar",
+    srcs = _TAR_SRCS,
+    mtree = "change_owner",
+)
+```
+"""
 
 load("@bazel_skylib//lib:types.bzl", "types")
 load("//tar/private:tar.bzl", _mutate_mtree = "mtree_mutate", _tar_lib = "tar_lib")

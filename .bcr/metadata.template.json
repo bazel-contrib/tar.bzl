@@ -1,6 +1,17 @@
 {
   "homepage": "https://github.com/alexeagle/tar.bzl",
-  "maintainers": [],
+  "maintainers": [
+    {
+      "email": "alex@aspect.build",
+      "github": "alexeagle",
+      "name": "Alex Eagle"
+    },
+    {
+      "email": "sahin@aspect.build",
+      "github": "thesayyn",
+      "name": "Şahin Yort"
+    }
+  ],
   "repository": ["github:alexeagle/tar.bzl"],
   "versions": [],
   "yanked_versions": {}

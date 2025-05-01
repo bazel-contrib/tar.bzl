@@ -1,5 +1,21 @@
 # Bazel tar rule
 
+General-purpose rule to create tar archives.
+
+Unlike [pkg_tar from rules_pkg](https://github.com/bazelbuild/rules_pkg/blob/main/docs/latest.md#pkg_tar):
+
+- It does not depend on any Python interpreter setup
+- The "manifest" specification is a mature public API and uses a compact tabular format, fixing
+  https://github.com/bazelbuild/rules_pkg/pull/238
+- It doesn't rely custom program to produce the output, instead
+  we rely on the well-known C++ program `tar(1)`.
+  Specifically, we use the BSD variant of tar since it provides a means
+  of controlling mtimes, uid, symlinks, etc.
+
+We also provide full control for tar'ring binaries including their runfiles.
+
+The `tar` binary is hermetic and fully statically-linked. See Design Notes below.
+
 This rule was originally developed within bazel-lib.
 Thanks to all the contributors who made it possible!
 
@@ -24,8 +40,8 @@ See https://registry.bazel.build/modules/rules_tar for this.
 
 ## API docs
 
-- [tar](docs/tar.md) Run BSD `tar(1)` to produce archives: https://man.freebsd.org/cgi/man.cgi?tar(1)
-- [mtree](docs/mtree.md) The intermediate manifest format `mtree(8)` describing a tar operation: https://man.freebsd.org/cgi/man.cgi?mtree(8)
+- [tar](docs/tar.md) Run BSD `tar(1)` to produce archives
+- [mtree](docs/mtree.md) The intermediate manifest format `mtree(8)` describing a tar operation
 
 ## Design notes
 
