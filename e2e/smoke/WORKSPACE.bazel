@@ -17,3 +17,13 @@ local_repository(
 load("@tar.bzl//tar:repositories.bzl", "tar_bzl_dependencies")
 
 tar_bzl_dependencies()
+
+load("@aspect_bazel_lib//lib:repositories.bzl", "aspect_bazel_lib_dependencies", "aspect_bazel_lib_register_toolchains")
+
+# Required bazel-lib dependencies
+
+aspect_bazel_lib_dependencies()
+
+# Register bazel-lib toolchains
+
+aspect_bazel_lib_register_toolchains()
