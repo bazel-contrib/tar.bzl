@@ -1,17 +1,14 @@
-"""Provides a simple way to test your rules as an external workspace.
-Add a basic smoke-test target below.
-"""
-
 load("@bazel_skylib//rules:build_test.bzl", "build_test")
-# load("@tar.bzl//tar:defs.bzl", "...")
+load("@tar.bzl", "tar")
 
-# Replace with a usage of your rule/macro
-filegroup(name = "empty")
+tar(
+    name = "archive",
+    srcs = [],
+)
 
 build_test(
     name = "smoke_test",
     targets = [
-        # targets you add above
-        ":empty",
+        ":archive",
     ],
 )
