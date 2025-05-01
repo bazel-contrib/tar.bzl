@@ -3,8 +3,14 @@
 load("@aspect_bazel_lib//lib:docs.bzl", "stardoc_with_diff_test", "update_docs")
 
 stardoc_with_diff_test(
+    name = "mtree",
+    bzl_library_target = "@tar.bzl//tar:mtree",
+    renderer = "//tools:stardoc_renderer",
+)
+
+stardoc_with_diff_test(
     name = "tar",
-    bzl_library_target = "@tar.bzl//:tar",
+    bzl_library_target = "@tar.bzl//tar:tar",
     renderer = "//tools:stardoc_renderer",
 )
 

@@ -1,0 +1,58 @@
+"Helpers for mtree(8)"
+
+load("@bazel_skylib//lib:types.bzl", "types")
+load("//tar/private:tar.bzl", _mutate_mtree = "mtree_mutate", _tar_lib = "tar_lib")
+
+mtree_spec = rule(
+    doc = "Create an mtree specification to map a directory hierarchy. See https://man.freebsd.org/cgi/man.cgi?mtree(8)",
+    implementation = _tar_lib.mtree_implementation,
+    attrs = _tar_lib.mtree_attrs,
+)
+
+def mtree_mutate(
+        name,
+        mtree,
+        srcs = None,
+        preserve_symlinks = False,
+        strip_prefix = None,
+        package_dir = None,
+        mtime = None,
+        owner = None,
+        ownername = None,
+        awk_script = Label("@tar.bzl//tar/private:modify_mtree.awk"),
+        **kwargs):
+    """Modify metadata in an mtree file.
+
+    Args:
+        name: name of the target, output will be `[name].mtree`.
+        mtree: input mtree file, typically created by `mtree_spec`.
+        srcs: list of files to resolve symlinks for.
+        preserve_symlinks: `EXPERIMENTAL!` We may remove or change it at any point without further notice. Flag to determine whether to preserve symlinks in the tar.
+        strip_prefix: prefix to remove from all paths in the tar. Files and directories not under this prefix are dropped.
+        package_dir: directory prefix to add to all paths in the tar.
+        mtime: new modification time for all entries.
+        owner: new uid for all entries.
+        ownername: new uname for all entries.
+        awk_script: may be overridden to change the script containing the modification logic.
+        **kwargs: additional named parameters to genrule
+    """
+    if preserve_symlinks and not srcs:
+        fail("preserve_symlinks requires srcs to be set in order to resolve symlinks")
+
+    # Check if srcs is of type list
+    if srcs and not types.is_list(srcs):
+        srcs = [srcs]
+    _mutate_mtree(
+        name = name,
+        mtree = mtree,
+        srcs = srcs,
+        preserve_symlinks = preserve_symlinks,
+        strip_prefix = strip_prefix,
+        package_dir = package_dir,
+        mtime = str(mtime) if mtime else None,
+        owner = owner,
+        ownername = ownername,
+        awk_script = awk_script,
+        out = "{}.mtree".format(name),
+        **kwargs
+    )

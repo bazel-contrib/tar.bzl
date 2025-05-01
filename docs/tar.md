@@ -53,35 +53,12 @@ tar(
 TODO:
 - Provide convenience for rules_pkg users to re-use or replace pkg_files trees
 
-<a id="mtree_spec"></a>
-
-## mtree_spec
-
-<pre>
-load("@tar.bzl", "mtree_spec")
-
-mtree_spec(<a href="#mtree_spec-name">name</a>, <a href="#mtree_spec-srcs">srcs</a>, <a href="#mtree_spec-out">out</a>, <a href="#mtree_spec-include_runfiles">include_runfiles</a>)
-</pre>
-
-Create an mtree specification to map a directory hierarchy. See https://man.freebsd.org/cgi/man.cgi?mtree(8)
-
-**ATTRIBUTES**
-
-
-| Name  | Description | Type | Mandatory | Default |
-| :------------- | :------------- | :------------- | :------------- | :------------- |
-| <a id="mtree_spec-name"></a>name |  A unique name for this target.   | <a href="https://bazel.build/concepts/labels#target-names">Name</a> | required |  |
-| <a id="mtree_spec-srcs"></a>srcs |  Files that are placed into the tar   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
-| <a id="mtree_spec-out"></a>out |  Resulting specification file to write   | <a href="https://bazel.build/concepts/labels">Label</a>; <a href="https://bazel.build/reference/be/common-definitions#configurable-attributes">nonconfigurable</a> | optional |  `None`  |
-| <a id="mtree_spec-include_runfiles"></a>include_runfiles |  Include the runfiles tree in the resulting mtree for targets that are executable.<br><br>The runfiles are in the paths that Bazel uses. For example, for the target `//my_prog:foo`, we would see files under paths like `foo.runfiles/<repo name>/my_prog/<file>`   | Boolean | optional |  `True`  |
-
-
 <a id="tar_rule"></a>
 
 ## tar_rule
 
 <pre>
-load("@tar.bzl", "tar_rule")
+load("@tar.bzl//tar:tar.bzl", "tar_rule")
 
 tar_rule(<a href="#tar_rule-name">name</a>, <a href="#tar_rule-srcs">srcs</a>, <a href="#tar_rule-out">out</a>, <a href="#tar_rule-args">args</a>, <a href="#tar_rule-compress">compress</a>, <a href="#tar_rule-compute_unused_inputs">compute_unused_inputs</a>, <a href="#tar_rule-mode">mode</a>, <a href="#tar_rule-mtree">mtree</a>)
 </pre>
@@ -103,43 +80,12 @@ Rule that executes BSD `tar`. Most users should use the [`tar`](#tar) macro, rat
 | <a id="tar_rule-mtree"></a>mtree |  An mtree specification file   | <a href="https://bazel.build/concepts/labels">Label</a> | required |  |
 
 
-<a id="mtree_mutate"></a>
-
-## mtree_mutate
-
-<pre>
-load("@tar.bzl", "mtree_mutate")
-
-mtree_mutate(<a href="#mtree_mutate-name">name</a>, <a href="#mtree_mutate-mtree">mtree</a>, <a href="#mtree_mutate-srcs">srcs</a>, <a href="#mtree_mutate-preserve_symlinks">preserve_symlinks</a>, <a href="#mtree_mutate-strip_prefix">strip_prefix</a>, <a href="#mtree_mutate-package_dir">package_dir</a>, <a href="#mtree_mutate-mtime">mtime</a>, <a href="#mtree_mutate-owner">owner</a>,
-             <a href="#mtree_mutate-ownername">ownername</a>, <a href="#mtree_mutate-awk_script">awk_script</a>, <a href="#mtree_mutate-kwargs">**kwargs</a>)
-</pre>
-
-Modify metadata in an mtree file.
-
-**PARAMETERS**
-
-
-| Name  | Description | Default Value |
-| :------------- | :------------- | :------------- |
-| <a id="mtree_mutate-name"></a>name |  name of the target, output will be `[name].mtree`.   |  none |
-| <a id="mtree_mutate-mtree"></a>mtree |  input mtree file, typically created by `mtree_spec`.   |  none |
-| <a id="mtree_mutate-srcs"></a>srcs |  list of files to resolve symlinks for.   |  `None` |
-| <a id="mtree_mutate-preserve_symlinks"></a>preserve_symlinks |  `EXPERIMENTAL!` We may remove or change it at any point without further notice. Flag to determine whether to preserve symlinks in the tar.   |  `False` |
-| <a id="mtree_mutate-strip_prefix"></a>strip_prefix |  prefix to remove from all paths in the tar. Files and directories not under this prefix are dropped.   |  `None` |
-| <a id="mtree_mutate-package_dir"></a>package_dir |  directory prefix to add to all paths in the tar.   |  `None` |
-| <a id="mtree_mutate-mtime"></a>mtime |  new modification time for all entries.   |  `None` |
-| <a id="mtree_mutate-owner"></a>owner |  new uid for all entries.   |  `None` |
-| <a id="mtree_mutate-ownername"></a>ownername |  new uname for all entries.   |  `None` |
-| <a id="mtree_mutate-awk_script"></a>awk_script |  may be overridden to change the script containing the modification logic.   |  `Label("@aspect_bazel_lib//lib/private:modify_mtree.awk")` |
-| <a id="mtree_mutate-kwargs"></a>kwargs |  additional named parameters to genrule   |  none |
-
-
 <a id="tar"></a>
 
 ## tar
 
 <pre>
-load("@tar.bzl", "tar")
+load("@tar.bzl//tar:tar.bzl", "tar")
 
 tar(<a href="#tar-name">name</a>, <a href="#tar-mtree">mtree</a>, <a href="#tar-stamp">stamp</a>, <a href="#tar-kwargs">**kwargs</a>)
 </pre>
@@ -187,7 +133,7 @@ https://man.freebsd.org/cgi/man.cgi?mtree(8)
 ## tar_lib.common.add_compression_args
 
 <pre>
-load("@tar.bzl", "tar_lib")
+load("@tar.bzl//tar:tar.bzl", "tar_lib")
 
 tar_lib.common.add_compression_args(<a href="#tar_lib.common.add_compression_args-compress">compress</a>, <a href="#tar_lib.common.add_compression_args-args">args</a>)
 </pre>
@@ -208,7 +154,7 @@ tar_lib.common.add_compression_args(<a href="#tar_lib.common.add_compression_arg
 ## tar_lib.implementation
 
 <pre>
-load("@tar.bzl", "tar_lib")
+load("@tar.bzl//tar:tar.bzl", "tar_lib")
 
 tar_lib.implementation(<a href="#tar_lib.implementation-ctx">ctx</a>)
 </pre>
@@ -228,7 +174,7 @@ tar_lib.implementation(<a href="#tar_lib.implementation-ctx">ctx</a>)
 ## tar_lib.mtree_implementation
 
 <pre>
-load("@tar.bzl", "tar_lib")
+load("@tar.bzl//tar:tar.bzl", "tar_lib")
 
 tar_lib.mtree_implementation(<a href="#tar_lib.mtree_implementation-ctx">ctx</a>)
 </pre>
