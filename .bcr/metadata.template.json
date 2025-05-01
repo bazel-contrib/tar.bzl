@@ -1,7 +1,7 @@
 {
-  "homepage": "https://github.com/myorg/rules_mylang",
+  "homepage": "https://github.com/alexeagle/tar.bzl",
   "maintainers": [],
-  "repository": ["github:myorg/rules_mylang"],
+  "repository": ["github:alexeagle/tar.bzl"],
   "versions": [],
   "yanked_versions": {}
 }
