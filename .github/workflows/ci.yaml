@@ -28,7 +28,8 @@ jobs:
           {"folder": ".", "bzlmodEnabled": false},
           {"folder": "docs", "bzlmodEnabled": false},
           {"folder": "docs", "bazelversion": "7.6.1"},
-          {"folder": "docs", "os": "macos-latest"}
+          {"folder": "docs", "os": "macos-latest"},
+          {"folder": "docs", "os": "windows-latest"}
         ]
   pre-commit:
     runs-on: ubuntu-latest
