@@ -113,8 +113,7 @@ assert_tar_listing(
     name = "test_flags",
     actual = "tar_flags",
     expected = [
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 lib/",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 lib/tests/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/",
         "-rwxr-xr-x  0 0      0          21 Jan  1  2023 tar/tests/src_file",
         "-rwxr-xr-x  0 0      0           7 Jan  1  2023 tar/tests/generated.txt",
@@ -226,17 +225,16 @@ assert_tar_listing(
     name = "test_dirs",
     actual = "dirs",
     expected = [
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 lib/",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 lib/tests/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/srcdir/",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/srcdir/info",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/srcdir/pkg",
-        "-rwxr-xr-x  0 0      0           1 Jan  1  2023 tar/tests/srcdir/space in name.txt",
+        "-rwxr-xr-x  0 0      0           2 Jan  1  2023 tar/tests/srcdir/space in name.txt",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/treeartifact/",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/treeartifact/info",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/treeartifact/pkg",
-        "-rwxr-xr-x  0 0      0           1 Jan  1  2023 tar/tests/treeartifact/space in name.txt",
+        "-rwxr-xr-x  0 0      0           2 Jan  1  2023 tar/tests/treeartifact/space in name.txt",
     ],
 )
 
@@ -278,8 +276,7 @@ assert_tar_listing(
     name = "test_change_owner",
     actual = "tar_change_owner",
     expected = [
-        "drwxr-xr-x  0 1000   500         0 Jan  1  2023 lib/",
-        "drwxr-xr-x  0 1000   500         0 Jan  1  2023 lib/tests/",
+        "drwxr-xr-x  0 1000   500         0 Jan  1  2023 tar/",
         "drwxr-xr-x  0 1000   500         0 Jan  1  2023 tar/tests/",
         "-rwxr-xr-x  0 1000   500         7 Jan  1  2023 tar/tests/generated.txt",
         "-rwxr-xr-x  0 1000   500        21 Jan  1  2023 tar/tests/src_file",
@@ -399,7 +396,7 @@ mtree_spec(
 mtree_mutate(
     name = "strip_prefix14_unsorted",
     mtree = "mtree14",
-    strip_prefix = "lib/tests/tar",
+    strip_prefix = "tar/tests",
 )
 
 # NOTE: On some systems, the mtree_spec output can have a different order.
@@ -449,13 +446,12 @@ assert_tar_listing(
     name = "test_unused_inputs_ignored",
     actual = ":tar15",
     expected = [
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 lib/",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 lib/tests/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/treeartifact/",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/treeartifact/info",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/treeartifact/pkg",
-        "-rwxr-xr-x  0 0      0           1 Jan  1  2023 tar/tests/treeartifact/space in name.txt",
+        "-rwxr-xr-x  0 0      0           2 Jan  1  2023 tar/tests/treeartifact/space in name.txt",
     ],
 )
 
@@ -486,7 +482,7 @@ mtree_spec(
 mtree_mutate(
     name = "strip_prefix16",
     mtree = ":mtree16",
-    strip_prefix = "lib",
+    strip_prefix = "tar",
 )
 
 tar(
@@ -501,9 +497,8 @@ assert_tar_listing(
     actual = "tar_strip_prefix16",
     expected = [
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tests/",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tests/tar/",
-        "-rwxr-xr-x  0 0      0          21 Jan  1  2023 tests/tar/src_file",
-        "-rwxr-xr-x  0 0      0           7 Jan  1  2023 tests/tar/generated.txt",
+        "-rwxr-xr-x  0 0      0          21 Jan  1  2023 tests/src_file",
+        "-rwxr-xr-x  0 0      0           7 Jan  1  2023 tests/generated.txt",
     ],
 )
 
@@ -540,15 +535,13 @@ assert_tar_listing(
     name = "test_17_before_processing",
     actual = ":mtree17",
     expected = [
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 lib/",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 lib/tests",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 lib/tests/tar",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/lib",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/lib/tests",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/lib/tests/tar",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/a@0.0.0",
@@ -583,15 +576,13 @@ assert_tar_listing(
     name = "test_17_after_processing",
     actual = ":resolve_symlinks",
     expected = [
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 lib/",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 lib/tests",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 lib/tests/tar",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests",
         "lrwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin -> ../native_binary_bin.runfiles/_main/tar/tests/executable.sh",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/lib",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/lib/tests",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/lib/tests/tar",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/a@0.0.0",

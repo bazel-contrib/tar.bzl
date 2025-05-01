@@ -20,11 +20,14 @@ jobs:
       folders: |
         [
           ".",
+          "docs",
           "e2e/smoke"
         ]
       exclude: |
         [
           {"folder": ".", "bzlmodEnabled": false}
+          {"folder": "docs", "bzlmodEnabled": false}
+          {"folder": "docs", "bazelVersion": "8.0.0"}
         ]
   pre-commit:
     runs-on: ubuntu-latest
