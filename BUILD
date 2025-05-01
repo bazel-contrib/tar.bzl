@@ -5,7 +5,7 @@ bzl_library(
     srcs = ["tar.bzl"],
     visibility = ["//visibility:public"],
     deps = [
-        "//tar/private:mtree",
-        "//tar/private:tar",
+        "//tar",
+        "//tar:mtree",
     ],
 )
