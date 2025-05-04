@@ -5,6 +5,7 @@ local_repository(
 )
 
 #---SNIP--- Below here is re-used in the workspace snippet published on releases
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 ######################
 # tar.bzl setup #
