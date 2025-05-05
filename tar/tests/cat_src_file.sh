@@ -19,4 +19,4 @@ f=
 set -e
 # --- end runfiles.bash initialization v3 ---
 
-cat $(rlocation aspect_bazel_lib/tar/tests/src_file)
+cat $(rlocation tar.bzl/tar/tests/src_file)

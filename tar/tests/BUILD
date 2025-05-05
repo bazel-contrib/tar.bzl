@@ -3,6 +3,7 @@ load("@aspect_bazel_lib//lib:diff_test.bzl", "diff_test")
 load("@aspect_bazel_lib//lib:testing.bzl", "assert_archive_contains")
 load("@bazel_skylib//rules:native_binary.bzl", "native_binary")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@tar.bzl", "mtree_mutate", "mtree_spec", "tar")
 load(":asserts.bzl", "assert_tar_listing", "assert_unused_listing")
 load(":node_modules_tree.bzl", "node_modules_tree")
@@ -157,47 +158,46 @@ assert_tar_listing(
 
 #############
 # Example 6: When archiving a binary, the "runfiles" are included.
-# FIXME(alex): uncomment
-# sh_binary(
-#     name = "cat_src_file",
-#     srcs = ["cat_src_file.sh"],
-#     data = ["src_file"],
-#     deps = ["@bazel_tools//tools/bash/runfiles"],
-# )
+sh_binary(
+    name = "cat_src_file",
+    srcs = ["cat_src_file.sh"],
+    data = ["src_file"],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
+)
 
-# tar(
-#     name = "tar_runfiles",
-#     srcs = [":cat_src_file"],
-#     out = "6.tar",
-# )
+tar(
+    name = "tar_runfiles",
+    srcs = [":cat_src_file"],
+    out = "6.tar",
+)
 
-# genrule(
-#     name = "run_program_with_runfiles",
-#     srcs = [":tar_runfiles"],
-#     outs = ["cat_src_file_output"],
-#     cmd = """\
-#       export DIR=$$(mktemp -d)
-#       $(BSDTAR_BIN) --extract --file $(execpath :tar_runfiles) --directory $$DIR
-#       (
-#         cd $$DIR
-#         ./tar/tests/cat_src_file
-#       ) > $@
-#     """,
-#     target_compatible_with = select({
-#         # requires runfiles tree, otherwise get
-#         # ERROR: cannot find bazel_tools/tools/bash/runfiles/runfiles.bash
-#         "@platforms//os:windows": ["@platforms//:incompatible"],
-#         "//conditions:default": [],
-#     }),
-#     toolchains = ["@bsd_tar_toolchains//:resolved_toolchain"],
-# )
+genrule(
+    name = "run_program_with_runfiles",
+    srcs = [":tar_runfiles"],
+    outs = ["cat_src_file_output"],
+    cmd = """\
+      export DIR=$$(mktemp -d)
+      $(BSDTAR_BIN) --extract --file $(execpath :tar_runfiles) --directory $$DIR
+      (
+        cd $$DIR
+        ./tar/tests/cat_src_file
+      ) > $@
+    """,
+    target_compatible_with = select({
+        # requires runfiles tree, otherwise get
+        # ERROR: cannot find bazel_tools/tools/bash/runfiles/runfiles.bash
+        "@platforms//os:windows": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+    toolchains = ["@bsd_tar_toolchains//:resolved_toolchain"],
+)
 
-# diff_test(
-#     name = "test_runfiles",
-#     timeout = "short",
-#     file1 = "src_file",
-#     file2 = "cat_src_file_output",
-# )
+diff_test(
+    name = "test_runfiles",
+    timeout = "short",
+    file1 = "src_file",
+    file2 = "cat_src_file_output",
+)
 
 #############
 # Example 7: You can archive directories,
