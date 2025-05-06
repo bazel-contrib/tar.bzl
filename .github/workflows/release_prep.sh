@@ -35,7 +35,7 @@ http_archive(
     name = "tar.bzl",
     sha256 = "${SHA}",
     strip_prefix = "${PREFIX}",
-    url = "https://github.com/alexeagle/tar.bzl/releases/download/${TAG}/${ARCHIVE}",
+    url = "https://github.com/bazel-contrib/tar.bzl/releases/download/${TAG}/${ARCHIVE}",
 )
 EOF
 

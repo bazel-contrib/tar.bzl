@@ -9,7 +9,8 @@ exports_files([
 
 bool_flag(
     name = "tar_compute_unused_inputs",
-    build_setting_default = True,
+    # TODO(1.0): change default to True, but without a breaking change to bazel-lib
+    build_setting_default = False,
     visibility = ["//visibility:public"],
 )
 
