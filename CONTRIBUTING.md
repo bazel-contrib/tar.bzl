@@ -45,7 +45,7 @@ If you do nothing, eventually the newest commits will be released automatically 
 This automation is defined in .github/workflows/tag.yaml.
 
 Rather than wait for the cron event, you can trigger manually. Navigate to
-https://github.com/alexeagle/tar.bzl/actions/workflows/tag.yaml
+https://github.com/bazel-contrib/tar.bzl/actions/workflows/tag.yaml
 and press the "Run workflow" button.
 
 If you need control over the next release version, for example when making a release candidate for a new major,
