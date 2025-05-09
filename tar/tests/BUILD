@@ -228,10 +228,12 @@ assert_tar_listing(
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/srcdir/",
+        "-rwxr-xr-x  0 0      0           4 Jan  1  2023 tar/tests/srcdir/Unicode® support?🤞",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/srcdir/info",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/srcdir/pkg",
         "-rwxr-xr-x  0 0      0           2 Jan  1  2023 tar/tests/srcdir/space in name.txt",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/treeartifact/",
+        "-rwxr-xr-x  0 0      0           4 Jan  1  2023 tar/tests/treeartifact/Unicode® support?🤞",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/treeartifact/info",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/treeartifact/pkg",
         "-rwxr-xr-x  0 0      0           2 Jan  1  2023 tar/tests/treeartifact/space in name.txt",
@@ -451,6 +453,7 @@ assert_tar_listing(
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/treeartifact/",
+        "-rwxr-xr-x  0 0      0           4 Jan  1  2023 tar/tests/treeartifact/Unicode® support?🤞",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/treeartifact/info",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/treeartifact/pkg",
         "-rwxr-xr-x  0 0      0           2 Jan  1  2023 tar/tests/treeartifact/space in name.txt",
@@ -461,6 +464,7 @@ assert_unused_listing(
     name = "test_unused_inputs_listed",
     actual = ":tar15",
     expected = [
+        "tar/tests/unused/Unicode® support?🤞",
         "tar/tests/unused/info",
         "tar/tests/unused/pkg",
         "tar/tests/unused/space in name.txt",
@@ -603,5 +607,42 @@ assert_tar_listing(
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/executable.sh",
         "lrwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/native_binary_bin -> ../executable.sh",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_repo_mapping",
+    ],
+)
+
+#############
+# Example 18: custom mtree with alternate escape sequences
+# In explicit or externally-derived mtree specs,
+# there is no need to match the path encoding that would be produced by our mtree macro exactly.
+# All escape sequences supported by bsdtar / libarchive will be understood.
+# This includes \s for SPACE, octal encoding of characters that don't need it, and others.
+# These alternate forms are not necessarily recommended, but they will work.
+
+tar(
+    name = "tar18",
+    srcs = [":treeartifact"],
+    out = "18.tar",
+    compute_unused_inputs = 1,
+    mtree = [
+        r"info                uid=0 gid=0 time=1672560000 mode=0755 type=file content=$(location :treeartifact)/\151\156\146\157",
+        r"space\sin\sname.txt uid=0 gid=0 time=1672560000 mode=0755 type=file content=$(location :treeartifact)/space\sin\sname.txt",
+    ],
+)
+
+assert_tar_listing(
+    name = "test_custom_mtree2",
+    actual = ":tar18",
+    expected = [
+        "-rwxr-xr-x  0 0      0           0 Jan  1  2023 info",
+        "-rwxr-xr-x  0 0      0           2 Jan  1  2023 space in name.txt",
+    ],
+)
+
+assert_unused_listing(
+    name = "test_unused_inputs_listed2",
+    actual = ":tar18",
+    expected = [
+        "tar/tests/treeartifact/Unicode® support?🤞",
+        "tar/tests/treeartifact/pkg",
     ],
 )
