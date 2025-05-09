@@ -37,7 +37,7 @@ tr() {
 
 @test "vis encode passthrough text" {
   cat <<'EOF' >"$BATS_TEST_TMPDIR/input"
-Newlines (\n), backslahes (\\), spaces (\s), and graphical ASCII ([[:graph:]]) characters are passed through unencoded.
+Newlines (\n), backslashes (\\), spaces (\s), and graphical ASCII ([[:graph:]]) characters are passed through unencoded.
 Upstream encoders should escape the first three in content they feed to the general encoder.
 
     Newline   => \012
@@ -57,6 +57,7 @@ EOF
 }
 
 @test "vis encode each byte" {
+  # spellchecker:off
   gawk -v OFS="0A" -v ORS="0A0A" '{ $1 = $1; print }' <<'EOF' | basenc --decode --base16 >"$BATS_TEST_TMPDIR/input"
 00 01 02 03 04 05 06 07 08 09    0B 0C 0D 0E 0F
 10 11 12 13 14 15 16 17 18 19 1A 1B 1C 1D 1E 1F
@@ -75,6 +76,7 @@ D0 D1 D2 D3 D4 D5 D6 D7 D8 D9 DA DB DC DD DE DF
 E0 E1 E2 E3 E4 E5 E6 E7 E8 E9 EA EB EC ED EE EF
 F0 F1 F2 F3 F4 F5 F6 F7 F8 F9 FA FB FC FD FE FF
 EOF
+  # spellchecker:on
 
   gawk -bf "$VIS_ESCAPE" <"$BATS_TEST_TMPDIR/input" >"$BATS_TEST_TMPDIR/output.raw"
 
@@ -123,6 +125,7 @@ EOF
 }
 
 @test "vis decode passthrough all non-escape-sequence bytes" {
+  # spellchecker:off
   tr -d ' \n' <<'EOF' | basenc --decode --base16 >"$BATS_TEST_TMPDIR/input"
 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
 10 11 12 13 14 15 16 17 18 19 1A 1B 1C 1D 1E 1F
@@ -141,12 +144,14 @@ D0 D1 D2 D3 D4 D5 D6 D7 D8 D9 DA DB DC DD DE DF
 E0 E1 E2 E3 E4 E5 E6 E7 E8 E9 EA EB EC ED EE EF
 F0 F1 F2 F3 F4 F5 F6 F7 F8 F9 FA FB FC FD FE FF
 EOF
+  # spellchecker:on
 
   gawk -bf "$UNVIS" <"$BATS_TEST_TMPDIR/input" >"$BATS_TEST_TMPDIR/output.raw"
 
   # Decoded content contains unprintable control characters. Diff the hexdump instead.
   od -Ax -tx1 <"$BATS_TEST_TMPDIR/output.raw" >"$BATS_TEST_TMPDIR/output"
 
+  # spellchecker:off
   cat <<'EOF' >"$BATS_TEST_TMPDIR/want"
 000000 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
 000010 10 11 12 13 14 15 16 17 18 19 1a 1b 1c 1d 1e 1f
@@ -166,12 +171,14 @@ EOF
 0000F0 f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 fa fb fc fd fe ff
 000100
 EOF
+  # spellchecker:on
 
   cd "$BATS_TEST_TMPDIR"
   diff -u want output
 }
 
 @test "vis decode all octal escape-sequences" {
+  # spellchecker:off
   tr -d ' \n' <<'EOF' >"$BATS_TEST_TMPDIR/input"
 \000 \001 \002 \003 \004 \005 \006 \007 \010 \011 \012 \013 \014 \015 \016 \017
 \020 \021 \022 \023 \024 \025 \026 \027 \030 \031 \032 \033 \034 \035 \036 \037
@@ -190,12 +197,14 @@ EOF
 \340 \341 \342 \343 \344 \345 \346 \347 \350 \351 \352 \353 \354 \355 \356 \357
 \360 \361 \362 \363 \364 \365 \366 \367 \370 \371 \372 \373 \374 \375 \376 \377
 EOF
+  # spellchecker:on
 
   gawk -bf "$UNVIS" <"$BATS_TEST_TMPDIR/input" >"$BATS_TEST_TMPDIR/output.raw"
 
   # Decoded content contains unprintable control characters. Diff the hexdump instead.
   od -Ax -tx1 <"$BATS_TEST_TMPDIR/output.raw" >"$BATS_TEST_TMPDIR/output"
 
+  # spellchecker:off
   cat <<'EOF' >"$BATS_TEST_TMPDIR/want"
 000000 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
 000010 10 11 12 13 14 15 16 17 18 19 1a 1b 1c 1d 1e 1f
@@ -215,6 +224,7 @@ EOF
 0000F0 f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 fa fb fc fd fe ff
 000100
 EOF
+  # spellchecker:on
 
   cd "$BATS_TEST_TMPDIR"
   diff -u want output
@@ -287,6 +297,7 @@ EOF
 }
 
 @test "vis canonicalize unescaped" {
+  # spellchecker:off
   gawk -v OFS='0A' -v ORS='0A0A' '{ $1 = $1; print }' <<'EOF' | basenc --decode --base16 >"$BATS_TEST_TMPDIR/input"
 00 01 02 03 04 05 06 07 08 09    0B 0C 0D 0E 0F
 10 11 12 13 14 15 16 17 18 19 1A 1B 1C 1D 1E 1F
@@ -305,6 +316,7 @@ D0 D1 D2 D3 D4 D5 D6 D7 D8 D9 DA DB DC DD DE DF
 E0 E1 E2 E3 E4 E5 E6 E7 E8 E9 EA EB EC ED EE EF
 F0 F1 F2 F3 F4 F5 F6 F7 F8 F9 FA FB FC FD FE FF
 EOF
+  # spellchecker:on
 
   gawk -bf "$VIS_CANONICALIZE" <"$BATS_TEST_TMPDIR/input" >"$BATS_TEST_TMPDIR/output.raw"
 

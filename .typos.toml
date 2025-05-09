@@ -1,1 +1,6 @@
 # See https://github.com/crate-ci/typos?tab=readme-ov-file#false-positives how to ignore
+
+default.extend-ignore-re = [
+    # Block exemption comment delimiters: spellchecker:<on|off>
+    "(?s)(#|//)\\s*spellchecker:off.*?\\n\\s*(#|//)\\s*spellchecker:on",
+]
