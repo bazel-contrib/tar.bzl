@@ -3,17 +3,55 @@
 load("@aspect_bazel_lib//lib:diff_test.bzl", "diff_test")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
 
+def _fmt_env_line(kv):
+    name, value = kv
+    return "{name}={value}".format(name = name, value = value)
+
+def _default_tar_env_impl(ctx):
+    env = ctx.toolchains["@aspect_bazel_lib//lib:tar_toolchain_type"].tarinfo.default_env
+    out = ctx.actions.declare_file(ctx.attr.name + ".env")
+
+    content = ctx.actions.args()
+    content.set_param_file_format("multiline")
+    content.add_all(env.items(), map_each = _fmt_env_line)
+
+    ctx.actions.write(out, content = content)
+    return [DefaultInfo(files = depset([out]))]
+
+default_tar_env = rule(
+    implementation = _default_tar_env_impl,
+    toolchains = ["@aspect_bazel_lib//lib:tar_toolchain_type"],
+    doc = """
+    Writes a .env file providing OS-specific environment variables to coerce the `tar` tool into a consistent, neutral, UTF-8 supporting locale.
+    """,
+)
+
 # buildifier: disable=function-docstring
 def assert_tar_listing(name, actual, expected):
     actual_listing = "{}_listing".format(name)
     expected_listing = "{}_expected".format(name)
 
+    list_env = Label("{}_list_env".format(name))
+    default_tar_env(
+        name = list_env.name,
+    )
+
     native.genrule(
         name = actual_listing,
-        srcs = [actual],
+        srcs = [
+            actual,
+            list_env,
+        ],
         testonly = True,
         outs = ["{}.listing".format(name)],
-        cmd = "$(BSDTAR_BIN) -tvf $(execpath {}) >$@".format(actual),
+        cmd = """
+            set -a
+            source $(execpath {list_env})
+            $(BSDTAR_BIN) -tvf $(execpath {actual}) >$@
+        """.format(
+            actual = actual,
+            list_env = list_env,
+        ),
         toolchains = ["@bsd_tar_toolchains//:resolved_toolchain"],
     )
 

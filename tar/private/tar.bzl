@@ -104,10 +104,8 @@ parallelism of builds. Pruned files do not need to be transferred to remote-exec
 workers, which can reduce network costs.
 
 Risks: pruning an actually-used input file can lead to unexpected, incorrect results. The
-comparison performed between `srcs` and `mtree` is currently inexact and may fail to
-handle handwritten or externally-derived mtree specifications. However, it is safe to use
-this feature when the lines found in `mtree` are derived from one or more `mtree_spec`
-rules, filtered and/or merged on whole-line basis only.
+comparison performed between `srcs` and `mtree` is exact. There are no known
+circumstances where incorrect results are anticipated.
 
 Possible values:
 
@@ -120,6 +118,10 @@ Possible values:
         values = [-1, 0, 1],
     ),
     "_compute_unused_inputs_flag": attr.label(default = Label("//tar:tar_compute_unused_inputs")),
+    "_gawk": attr.label(executable = True, cfg = "exec", default = Label("@gawk")),
+    "_unvis": attr.label(allow_single_file = True, default = Label(":unvis.gawk")),
+    "_vis_canonicalize": attr.label(allow_single_file = True, default = Label(":vis_canonicalize.gawk")),
+    "_vis_escape": attr.label(allow_single_file = True, default = Label(":vis_escape.gawk")),
 }
 
 _mtree_attrs = {
@@ -135,6 +137,8 @@ _mtree_attrs = {
         """,
         default = True,
     ),
+    "_gawk": attr.label(executable = True, cfg = "exec", default = Label("@gawk")),
+    "_vis_escape": attr.label(allow_single_file = True, default = Label(":vis_escape.gawk")),
 }
 _mutate_mtree_attrs = {
     "mtree": attr.label(
@@ -240,18 +244,13 @@ def _is_unprunable(file):
     p = file.path
     return p[0].isspace() or p[-1].isspace() or "\n" in p or "\r" in p
 
-def _fmt_pruanble_inputs_line(file):
+def _fmt_prunable_inputs_line(file):
     if _is_unprunable(file):
         return None
 
-    # The tar.prunable_inputs.txt file has a two columns:
-    #   1. vis-encoded paths of the files, used in comparison
-    #   2. un-vis-encoded paths of the files, used for reporting back to Bazel after filtering
-    path = file.path
-    return _vis_encode(path) + " " + path
+    return _vis_encode(file.path)
 
 def _fmt_keep_inputs_line(file):
-    # The tar.keep_inputs.txt file has a single column of vis-encoded paths of the files to keep.
     return _vis_encode(file.path)
 
 def _configured_unused_inputs_file(ctx, srcs, keep):
@@ -280,7 +279,7 @@ def _configured_unused_inputs_file(ctx, srcs, keep):
             .set_param_file_format("multiline")
             .add_all(
             srcs,
-            map_each = _fmt_pruanble_inputs_line,
+            map_each = _fmt_prunable_inputs_line,
         ),
     )
     ctx.actions.write(
@@ -298,26 +297,34 @@ def _configured_unused_inputs_file(ctx, srcs, keep):
     #   * are not found in any content= or contents= keyword in the MTREE
     #   * are not in the hardcoded KEEP_INPUTS set
     #
-    # Comparison and filtering of PRUNABLE_INPUTS is performed in the vis-encoded representation, stored in field 1,
-    # before being written out in the un-vis-encoded form Bazel understands, from field 2.
+    # Comparison and filtering of PRUNABLE_INPUTS is performed in the vis-encoded representation
+    # before being written out in the un-vis-encoded form Bazel understands.
     #
     # Note: bsdtar (libarchive) accepts both content= and contents= to identify source file:
     # ref https://github.com/libarchive/libarchive/blob/a90e9d84ec147be2ef6a720955f3b315cb54bca3/libarchive/archive_read_support_format_mtree.c#L1640
-    #
-    # TODO: Make comparison exact by converting all inputs to a canonical vis-encoded form before comparing.
-    #       See also: https://github.com/bazel-contrib/bazel-lib/issues/794
     ctx.actions.run_shell(
         outputs = [unused_inputs],
-        inputs = [prunable_inputs, keep_inputs, ctx.file.mtree],
+        inputs = [
+            prunable_inputs,
+            keep_inputs,
+            ctx.file.mtree,
+            ctx.executable._gawk,
+            ctx.file._unvis,
+            ctx.file._vis_canonicalize,
+            ctx.file._vis_escape,
+        ],
         tools = [coreutils],
         command = '''
-            "$COREUTILS" join -v 1                                                            \\
-                <("$COREUTILS" sort -u "$PRUNABLE_INPUTS")                                    \\
-                <("$COREUTILS" sort -u                                                        \\
-                    <(grep -o '\\bcontents\\?=\\S*' "$MTREE" | "$COREUTILS" cut -d'=' -f 2-)  \\
-                    "$KEEP_INPUTS"                                                            \\
-                )                                                                             \\
-                | "$COREUTILS" cut -d' ' -f 2-                                                \\
+            "$COREUTILS" join -v 1                                                      \\
+                <("$GAWK" -bf "$VIS_ESCAPE" "$PRUNABLE_INPUTS" | "$COREUTILS" sort -u)  \\
+                <("$COREUTILS" sort -u                                                  \\
+                    <(grep -o '\\bcontents\\?=\\S*' "$MTREE"                            \\
+                        | "$COREUTILS" cut -d'=' -f 2-                                  \\
+                        | "$GAWK" -bf "$VIS_CANONICALIZE"                               \\
+                    )                                                                   \\
+                    <("$GAWK" -bf "$VIS_ESCAPE" "$KEEP_INPUTS")                         \\
+                )                                                                       \\
+                | "$GAWK" -bf "$UNVIS"                                                  \\
                 > "$UNUSED_INPUTS"
         ''',
         env = {
@@ -326,6 +333,10 @@ def _configured_unused_inputs_file(ctx, srcs, keep):
             "KEEP_INPUTS": keep_inputs.path,
             "MTREE": ctx.file.mtree.path,
             "UNUSED_INPUTS": unused_inputs.path,
+            "GAWK": ctx.executable._gawk.path,
+            "UNVIS": ctx.file._unvis.path,
+            "VIS_CANONICALIZE": ctx.file._vis_canonicalize.path,
+            "VIS_ESCAPE": ctx.file._vis_escape.path,
         },
         mnemonic = "UnusedTarInputs",
         toolchain = "@aspect_bazel_lib//lib:coreutils_toolchain_type",
@@ -424,8 +435,10 @@ def _to_rlocation_path(file, workspace):
     return workspace + "/" + file.short_path
 
 def _vis_encode(filename):
-    # TODO(#794): correctly encode all filenames by using vis(3) (or porting it)
-    return filename.replace(" ", "\\040")
+    # Escaping of non-ASCII bytes cannot be performed within Starlark.
+    # After writing content out, a second pass is performed with vis_escape.gawk.
+    # Backslash, newline, and space are not handled by vis_escape.gawk; we encode only these in-process.
+    return filename.replace("\\", "\\134").replace("\n", "\\012").replace(" ", "\\040")
 
 def _expand(file, expander, transform = to_repository_relative_path):
     expanded = expander.expand(file)
@@ -452,6 +465,7 @@ def _expand(file, expander, transform = to_repository_relative_path):
 
 def _mtree_impl(ctx):
     out = ctx.outputs.out or ctx.actions.declare_file(ctx.attr.name + ".spec")
+    unescaped = ctx.actions.declare_file(ctx.attr.name + ".spec.unescaped")
 
     content = ctx.actions.args()
     content.set_param_file_format("multiline")
@@ -497,7 +511,23 @@ def _mtree_impl(ctx):
                     _mtree_line(_vis_encode(runfiles_dir + "/_repo_mapping"), "file", content = _vis_encode(repo_mapping.path)),
                 )
 
-    ctx.actions.write(out, content = content)
+    ctx.actions.write(unescaped, content = content)
+    ctx.actions.run_shell(
+        outputs = [out],
+        inputs = [
+            unescaped,
+            ctx.executable._gawk,
+            ctx.file._vis_escape,
+        ],
+        command = '"$GAWK" -bf "$VIS_ESCAPE" "$UNESCAPED" > "$OUT"',
+        env = {
+            "GAWK": ctx.executable._gawk.path,
+            "VIS_ESCAPE": ctx.file._vis_escape.path,
+            "UNESCAPED": unescaped.path,
+            "OUT": out.path,
+        },
+        mnemonic = "VisEscape",
+    )
 
     return DefaultInfo(files = depset([out]), runfiles = ctx.runfiles([out]))
 

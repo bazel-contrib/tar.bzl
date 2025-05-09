@@ -1,7 +1,12 @@
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
 exports_files(
-    ["modify_mtree.awk"],
+    [
+        "modify_mtree.awk",
+        "unvis.gawk",
+        "vis_canonicalize.gawk",
+        "vis_escape.gawk",
+    ],
     visibility = ["//visibility:public"],
 )
 
