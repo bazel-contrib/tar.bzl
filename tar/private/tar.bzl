@@ -138,7 +138,7 @@ _mtree_attrs = {
         default = True,
     ),
     "_gawk": attr.label(executable = True, cfg = "exec", default = Label("@gawk")),
-     "_vis_escape": attr.label(allow_single_file = True, default = Label(":vis_escape.gawk")),
+    "_vis_escape": attr.label(allow_single_file = True, default = Label(":vis_escape.gawk")),
 }
 _mutate_mtree_attrs = {
     "mtree": attr.label(

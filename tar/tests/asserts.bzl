@@ -49,8 +49,8 @@ def assert_tar_listing(name, actual, expected):
             source $(execpath {list_env})
             $(BSDTAR_BIN) -tvf $(execpath {actual}) >$@
         """.format(
-            actual=actual,
-            list_env=list_env,
+            actual = actual,
+            list_env = list_env,
         ),
         toolchains = ["@bsd_tar_toolchains//:resolved_toolchain"],
     )
