@@ -271,7 +271,7 @@ EOF
 \100 \101 \102 \103 \104 \105 \106 \107 \110 \111 \112 \113 \114 \115 \116 \117
 \120 \121 \122 \123 \124 \125 \126 \127 \130 \131 \132 \133      \135 \136 \137
 \140 \141 \142 \143 \144 \145 \146 \147 \150 \151 \152 \153 \154 \155 \156 \157
-\160 \161 \162 \163 \164 \165 \166 \167 \170 \171 \172 \173 \174 \175 \176 
+\160 \161 \162 \163 \164 \165 \166 \167 \170 \171 \172 \173 \174 \175 \176
 EOF
 
   gawk -bf "$VIS_CANONICALIZE" <"$BATS_TEST_TMPDIR/input" >"$BATS_TEST_TMPDIR/output.raw"
@@ -279,7 +279,6 @@ EOF
   gawk -v FS='\n' -v RS='\n\n' '
     NR == rshift(0x20 - 0x20, 4) + 1  { for (i = NF; i > 0x00; i--) $(i+1) = $(i); $(0x00+1) = "" }            # Space gap
     NR == rshift(0x50 - 0x20, 4) + 1  { for (i = NF; i > 0x0C; i--) $(i+1) = $(i); $(0x0C+1) = "" }            # Backslash gap
-    NR == rshift(0x70 - 0x20, 4) + 1  { for (i = NF; i > 0x0F; i--) $(i+1) = $(i); $(0x0F+1) = "" }            # Delete gap
                                       { for (i = 1; i <= NF; i++) printf "%1s%s", $(i), i == NF ? ORS : OFS }  # Emit table with fixed-width columns.
   ' <"$BATS_TEST_TMPDIR/output.raw" >"$BATS_TEST_TMPDIR/output"
 
@@ -289,7 +288,7 @@ EOF
 @ A B C D E F G H I J K L M N O
 P Q R S T U V W X Y Z [   ] ^ _
 ` a b c d e f g h i j k l m n o
-p q r s t u v w x y z { | } ~  
+p q r s t u v w x y z { | } ~
 EOF
 
   cd "$BATS_TEST_TMPDIR"
