@@ -4,6 +4,7 @@ API for calling tar, see https://man.freebsd.org/cgi/man.cgi?tar(1)
 
 load("@aspect_bazel_lib//lib:expand_template.bzl", "expand_template")
 load("@aspect_bazel_lib//lib:utils.bzl", "propagate_common_rule_attributes")
+load("@bazel_skylib//lib:partial.bzl", "partial")
 load("@bazel_skylib//lib:types.bzl", "types")
 load("//tar/private:tar.bzl", _tar = "tar", _tar_lib = "tar_lib")
 load(":mtree.bzl", "mtree_spec")
@@ -12,7 +13,7 @@ tar_rule = _tar
 
 tar_lib = _tar_lib
 
-def tar(name, mtree = "auto", stamp = 0, **kwargs):
+def tar(name, mtree = "auto", mutations = None, stamp = 0, **kwargs):
     """Wrapper macro around [`tar_rule`](#tar_rule).
 
     ### Options for mtree
@@ -44,6 +45,7 @@ def tar(name, mtree = "auto", stamp = 0, **kwargs):
         mtree: "auto", or an array of specification lines, or a label of a file that contains the lines.
             Subject to [$(location)](https://bazel.build/reference/be/make-variables#predefined_label_variables)
             and ["Make variable"](https://bazel.build/reference/be/make-variables) substitution.
+        mutations: FIXME
         stamp: should mtree attribute be stamped
         **kwargs: additional named parameters to pass to `tar_rule`
     """
@@ -55,6 +57,10 @@ def tar(name, mtree = "auto", stamp = 0, **kwargs):
             out = "{}.txt".format(mtree_target),
             **propagate_common_rule_attributes(kwargs)
         )
+        if mutations:
+            if partial.is_instance(mutations):
+                partial.call(mutations, name = "thing", mtree = mtree_target)
+                mtree_target = "thing"
     elif types.is_list(mtree):
         expand_template(
             name = mtree_target,

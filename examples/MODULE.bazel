@@ -1,0 +1,16 @@
+bazel_dep(name = "tar.bzl", version = "0.0.0")
+local_path_override(
+    module_name = "tar.bzl",
+    path = "..",
+)
+
+bazel_dep(name = "aspect_bazel_lib", version = "2.16.0")
+bazel_dep(name = "bazel_skylib", version = "1.7.1")
+
+bazel_lib_toolchains = use_extension("@aspect_bazel_lib//lib:extensions.bzl", "toolchains")
+use_repo(bazel_lib_toolchains, "bsd_tar_toolchains")
+
+register_toolchains("@bsd_tar_toolchains//:all")
+
+# To test our compatibility and make migration easy
+bazel_dep(name = "rules_pkg", version = "1.1.0")
