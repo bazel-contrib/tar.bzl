@@ -20,6 +20,7 @@ bzl_library(
     visibility = ["//visibility:public"],
     deps = [
         "//tar/private:tar",
+        "@bazel_skylib//lib:partial",
         "@bazel_skylib//lib:types",
     ],
 )

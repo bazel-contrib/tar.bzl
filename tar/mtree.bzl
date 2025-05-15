@@ -30,6 +30,7 @@ tar(
 ```
 """
 
+load("@bazel_skylib//lib:partial.bzl", "partial")
 load("@bazel_skylib//lib:types.bzl", "types")
 load("//tar/private:tar.bzl", _mutate_mtree = "mtree_mutate", _tar_lib = "tar_lib")
 
@@ -86,3 +87,7 @@ def mtree_mutate(
         out = "{}.mtree".format(name),
         **kwargs
     )
+
+def mutate(**kwargs):
+    """Factory function to make a partially-applied `mtree_mutate` rule."""
+    return partial.make(mtree_mutate, **kwargs)

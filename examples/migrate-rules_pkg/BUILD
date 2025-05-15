@@ -1,6 +1,5 @@
-load("@bazel_skylib//lib:partial.bzl", "partial")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
-load("@tar.bzl", "mtree_mutate", "tar")
+load("@tar.bzl", "mutate", "tar")
 load("@tar.bzl//tar/tests:asserts.bzl", "assert_tars_match")
 
 filegroup(
@@ -17,8 +16,7 @@ pkg_tar(
 tar(
     name = "new",
     srcs = [":static"],
-    mutate = partial.make(
-        mtree_mutate,
+    mutate = mutate(
         mtime = 946699200,
         strip_prefix = package_name(),
     ),
