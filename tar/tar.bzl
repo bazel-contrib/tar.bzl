@@ -50,6 +50,9 @@ def tar(name, mtree = "auto", mutations = None, stamp = 0, **kwargs):
         **kwargs: additional named parameters to pass to `tar_rule`
     """
     mtree_target = "{}_mtree".format(name)
+    if mutations and mtree != "auto":
+        fail("mutations is only supported when mtree is 'auto'")
+
     if mtree == "auto":
         mtree_spec(
             name = mtree_target,
@@ -59,8 +62,11 @@ def tar(name, mtree = "auto", mutations = None, stamp = 0, **kwargs):
         )
         if mutations:
             if partial.is_instance(mutations):
-                partial.call(mutations, name = "thing", mtree = mtree_target)
-                mtree_target = "thing"
+                mutated_mtree_target = "{}__mutated".format(name)
+                partial.call(mutations, name = mutated_mtree_target, mtree = mtree_target)
+                mtree_target = mutated_mtree_target
+            else:
+                fail("mutations must be a partial")
     elif types.is_list(mtree):
         expand_template(
             name = mtree_target,
