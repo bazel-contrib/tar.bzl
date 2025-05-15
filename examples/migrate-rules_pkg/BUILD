@@ -17,7 +17,7 @@ pkg_tar(
 tar(
     name = "new",
     srcs = [":static"],
-    mutations = partial.make(
+    mutate = partial.make(
         mtree_mutate,
         mtime = 946699200,
         strip_prefix = package_name(),

@@ -13,7 +13,7 @@ tar_rule = _tar
 
 tar_lib = _tar_lib
 
-def tar(name, mtree = "auto", mutations = None, stamp = 0, **kwargs):
+def tar(name, mtree = "auto", mutate = None, stamp = 0, **kwargs):
     """Wrapper macro around [`tar_rule`](#tar_rule).
 
     ### Options for mtree
@@ -45,13 +45,13 @@ def tar(name, mtree = "auto", mutations = None, stamp = 0, **kwargs):
         mtree: "auto", or an array of specification lines, or a label of a file that contains the lines.
             Subject to [$(location)](https://bazel.build/reference/be/make-variables#predefined_label_variables)
             and ["Make variable"](https://bazel.build/reference/be/make-variables) substitution.
-        mutations: FIXME
+        mutate: a partially-applied `mtree_mutate` rule
         stamp: should mtree attribute be stamped
         **kwargs: additional named parameters to pass to `tar_rule`
     """
     mtree_target = "{}_mtree".format(name)
-    if mutations and mtree != "auto":
-        fail("mutations is only supported when mtree is 'auto'")
+    if mutate and mtree != "auto":
+        fail("mutate is only supported when mtree is 'auto'")
 
     if mtree == "auto":
         mtree_spec(
@@ -60,13 +60,13 @@ def tar(name, mtree = "auto", mutations = None, stamp = 0, **kwargs):
             out = "{}.txt".format(mtree_target),
             **propagate_common_rule_attributes(kwargs)
         )
-        if mutations:
-            if partial.is_instance(mutations):
+        if mutate:
+            if partial.is_instance(mutate):
                 mutated_mtree_target = "{}__mutated".format(name)
-                partial.call(mutations, name = mutated_mtree_target, mtree = mtree_target)
+                partial.call(mutate, name = mutated_mtree_target, mtree = mtree_target)
                 mtree_target = mutated_mtree_target
             else:
-                fail("mutations must be a partial")
+                fail("mutate must be a partial")
     elif types.is_list(mtree):
         expand_template(
             name = mtree_target,
