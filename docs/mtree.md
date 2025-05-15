@@ -85,3 +85,23 @@ Modify metadata in an mtree file.
 | <a id="mtree_mutate-kwargs"></a>kwargs |  additional named parameters to genrule   |  none |
 
 
+<a id="mutate"></a>
+
+## mutate
+
+<pre>
+load("@tar.bzl//tar:mtree.bzl", "mutate")
+
+mutate(<a href="#mutate-kwargs">**kwargs</a>)
+</pre>
+
+Factory function to make a partially-applied `mtree_mutate` rule.
+
+**PARAMETERS**
+
+
+| Name  | Description | Default Value |
+| :------------- | :------------- | :------------- |
+| <a id="mutate-kwargs"></a>kwargs |  <p align="center"> - </p>   |  none |
+
+

@@ -20,6 +20,7 @@ bzl_library(
     visibility = ["//visibility:public"],
     deps = [
         "//tar/private:tar",
+        "@bazel_skylib//lib:partial",
         "@bazel_skylib//lib:types",
     ],
 )
@@ -33,6 +34,7 @@ bzl_library(
         "//tar/private:tar",
         "@aspect_bazel_lib//lib:expand_template",
         "@aspect_bazel_lib//lib:utils",
+        "@bazel_skylib//lib:partial",
         "@bazel_skylib//lib:types",
     ],
 )

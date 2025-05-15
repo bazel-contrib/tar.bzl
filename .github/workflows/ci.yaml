@@ -24,7 +24,8 @@ jobs:
         [
           ".",
           "docs",
-          "e2e/smoke"
+          "e2e/smoke",
+          "examples"
         ]
       exclude: |
         [
@@ -32,7 +33,11 @@ jobs:
           {"folder": "docs", "bzlmodEnabled": false},
           {"folder": "docs", "bazelversion": "7.6.1"},
           {"folder": "docs", "os": "macos-latest"},
-          {"folder": "docs", "os": "windows-latest"}
+          {"folder": "docs", "os": "windows-latest"},
+          {"folder": "examples", "os": "macos-latest"},
+          {"folder": "examples", "os": "windows-latest"},
+          {"folder": "examples", "bazelversion": "7.6.1"},
+          {"folder": "examples", "bzlmodEnabled": false}
         ]
   pre-commit:
     runs-on: ubuntu-latest
