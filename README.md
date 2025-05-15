@@ -23,7 +23,7 @@ Thanks to all the contributors who made it possible!
 
 Simplest possible usage:
 
-```
+```starlark
 load("@tar.bzl", "tar")
 
 # build this target to produce archive.tar
@@ -33,7 +33,23 @@ tar(
 )
 ```
 
-Exhaustive examples may be found in our test suite: `/tar/tests/BUILD`
+Mutations allow modification of the archive's structure. For example to strip the package name:
+
+```starlark
+load("@tar.bzl", "mutate", "tar")
+
+tar(
+    name = "new",
+    srcs = ["my-file.txt"],
+    # See arguments documented at
+    # https://github.com/bazel-contrib/tar.bzl/blob/main/docs/mtree.md#mtree_mutate
+    mutate = mutate(strip_prefix = package_name()),
+)
+```
+
+Other examples:
+- Migrate from `pkg_tar`: https://github.com/bazel-contrib/tar.bzl/blob/main/examples/migrate-rules_pkg/BUILD
+- Look through our test suite: https://github.com/bazel-contrib/tar.bzl/blob/main/tar/tests/BUILD
 
 Note; this repository doesn't yet allow modes other than `create`, such as "append", "list", "update", "extract".
 See https://registry.bazel.build/modules/rules_tar for this.
