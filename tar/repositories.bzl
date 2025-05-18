@@ -8,7 +8,7 @@ def tar_dependencies():
         urls = [
             "https://ftp.gnu.org/gnu/gawk/gawk-5.3.2.tar.xz",
         ],
-        strip_prefix =  "gawk-5.3.2",
+        strip_prefix = "gawk-5.3.2",
         integrity = "sha256-+MNIZQnecFGSE4sA7ywAu73Q6Eww1cB9I/xzqdxMycw=",
         build_file_content = "",
         remote_file_urls = {

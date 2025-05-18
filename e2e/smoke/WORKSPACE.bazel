@@ -4,10 +4,10 @@ local_repository(
     path = "../..",
 )
 
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
 #---SNIP--- Below here is re-used in the workspace snippet published on releases
 load("@tar.bzl//tar:repositories.bzl", "tar_dependencies")
-
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 ######################
 # tar.bzl setup #
