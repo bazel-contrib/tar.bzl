@@ -1,3 +1,5 @@
+"WORKSPACE macros for loading dependencies"
+
 load("@aspect_bazel_lib//lib:utils.bzl", http_archive = "maybe_http_archive")
 
 def tar_dependencies():
