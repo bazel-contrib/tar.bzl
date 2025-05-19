@@ -524,7 +524,7 @@ def _mtree_mutate_impl(ctx):
     if ctx.attr.strip_prefix:
         args.add("-v strip_prefix={}".format(ctx.attr.strip_prefix))
     if ctx.attr.package_dir:
-        args.add("-v package_dir={}".format(ctx.attr.package_dir))
+        args.add("-v package_dir={}".format(ctx.attr.package_dir.lstrip("/")))
     if ctx.attr.mtime:
         args.add("-v mtime={}".format(ctx.attr.mtime))
     if ctx.attr.preserve_symlinks:
