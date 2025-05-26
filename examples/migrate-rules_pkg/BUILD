@@ -28,6 +28,7 @@ tar(
 pkg_tar(
     name = "old2",
     srcs = [":static"],
+    mode = "0755",
     package_dir = "/usr/share/nginx/html",
 )
 
