@@ -75,8 +75,11 @@ function make_relative_link(path1, path2, i, common, target, relative_path, back
         }
     }
 
+    # Chosen to match rules_pkg
+    default_time = 946699200
     if (mtime != "") {
         sub(/time=[0-9\.]+/, "time=" mtime);
+        default_time = mtime
     }
 
     if (owner != "") {
@@ -96,6 +99,23 @@ function make_relative_link(path1, path2, i, common, target, relative_path, back
     }
 
     if (package_dir != "") {
+        # First ensure parent directories exist
+        if (!($0 ~ /type=dir/)) {
+            split(package_dir, dirs, "/")
+            path = ""
+            for (i = 1; i <= length(dirs); i++) {
+                if (path == "") {
+                    path = dirs[i]
+                } else {
+                    path = path "/" dirs[i]
+                }
+                # Only print if we haven't seen this directory before
+                if (!(path in seen_dirs)) {
+                    print path " type=dir mode=0755 time=" default_time
+                    seen_dirs[path] = 1
+                }
+            }
+        }
         sub(/^/, package_dir "/")
     }
     if (preserve_symlinks != "") {
