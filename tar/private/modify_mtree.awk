@@ -75,8 +75,11 @@ function make_relative_link(path1, path2, i, common, target, relative_path, back
         }
     }
 
+    # Chosen to match rules_pkg
+    default_time = 946699200
     if (mtime != "") {
         sub(/time=[0-9\.]+/, "time=" mtime);
+        default_time = mtime
     }
 
     if (owner != "") {
@@ -108,7 +111,7 @@ function make_relative_link(path1, path2, i, common, target, relative_path, back
                 }
                 # Only print if we haven't seen this directory before
                 if (!(path in seen_dirs)) {
-                    print path " type=dir mode=0755 time=946699200"
+                    print path " type=dir mode=0755 time=" default_time
                     seen_dirs[path] = 1
                 }
             }
