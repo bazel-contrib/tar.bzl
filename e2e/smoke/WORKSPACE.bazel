@@ -4,8 +4,9 @@ local_repository(
     path = "../..",
 )
 
-#---SNIP--- Below here is re-used in the workspace snippet published on releases
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+#---SNIP--- Below here is re-used in the workspace snippet published on releases
 
 ######################
 # tar.bzl setup #
@@ -27,6 +28,7 @@ http_archive(
 )
 
 load("@aspect_bazel_lib//lib:repositories.bzl", "aspect_bazel_lib_dependencies", "aspect_bazel_lib_register_toolchains")
+load("@tar.bzl//tar:repositories.bzl", "tar_dependencies")
 
 # Required bazel-lib dependencies
 
@@ -35,3 +37,7 @@ aspect_bazel_lib_dependencies()
 # Register bazel-lib toolchains
 
 aspect_bazel_lib_register_toolchains()
+
+# Required tar.bzl dependencies
+
+tar_dependencies()
