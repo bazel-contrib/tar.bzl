@@ -97,11 +97,10 @@ input set using the `unused_inputs_list`
 [mechanism](https://bazel.build/contribute/codebase#input-discovery).
 
 Benefits: pruning unused input files can reduce the amount of work the build system must
-perform. Pruned files are not included in the action cache key; changes to them do not
-invalidate the cache entry, which can lead to higher cache hit rates. Actions do not need
-to block on the availability of pruned inputs, which can increase the available
-parallelism of builds. Pruned files do not need to be transferred to remote-execution
-workers, which can reduce network costs.
+perform. Pruned files are not included in the (local)action cache key; changes to them do
+not invalidate the cache entry, which can lead to higher cache hit rates. Actions do not
+need to block on the availability of pruned inputs, which can increase the available
+parallelism of builds.
 
 Risks: pruning an actually-used input file can lead to unexpected, incorrect results. The
 comparison performed between `srcs` and `mtree` is currently inexact and may fail to
