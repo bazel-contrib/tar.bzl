@@ -8,6 +8,7 @@ workspaces:
         - bazel-6:
             without: true
   - e2e/smoke
+  - examples
 tasks:
   - test:
       name: "Test (Bazel 6.x)"
