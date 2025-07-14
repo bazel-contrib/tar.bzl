@@ -4,7 +4,7 @@ load("@aspect_bazel_lib//lib:diff_test.bzl", "diff_test")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
 
 # buildifier: disable=function-docstring
-def assert_tar_listing(name, actual, expected):
+def assert_tar_listing(name, actual, expected, tags = []):
     actual_listing = "{}_listing".format(name)
     expected_listing = "{}_expected".format(name)
 
@@ -30,6 +30,7 @@ def assert_tar_listing(name, actual, expected):
         file1 = actual_listing,
         file2 = expected_listing,
         timeout = "short",
+        tags = tags,
     )
 
 # buildifier: disable=function-docstring
