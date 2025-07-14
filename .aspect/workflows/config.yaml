@@ -1,7 +1,12 @@
 # See https://docs.aspect.build/workflows/configuration
 workspaces:
   - .
-  - docs
+  - docs:
+      tasks:
+        - bazel-7:
+            without: true
+        - bazel-6:
+            without: true
   - e2e/smoke
 tasks:
   - test:
