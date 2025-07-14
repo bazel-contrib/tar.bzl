@@ -1,5 +1,5 @@
+load("@aspect_bazel_lib//:bzl_library.bzl", "bzl_library")
 load("@aspect_bazel_lib//lib:diff_test.bzl", "diff_test")
-load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
 load("//tar:mtree.bzl", "mtree_spec")
 
