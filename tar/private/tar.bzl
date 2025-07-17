@@ -1,7 +1,6 @@
 "Implementation of tar rule"
 
 load("@aspect_bazel_lib//lib:paths.bzl", "to_repository_relative_path")
-load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 TAR_TOOLCHAIN_TYPE = "@aspect_bazel_lib//lib:tar_toolchain_type"
@@ -411,6 +410,8 @@ def _tar_impl(ctx):
     return default_info
 
 def _mtree_line(file, type, content = None, uid = "0", gid = "0", time = "1672560000", mode = "0755"):
+    if type == "dir" and not file.endswith("/"):
+        file += "/"
     spec = [
         file,
         "uid=" + uid,
@@ -497,12 +498,12 @@ def _mtree_impl(ctx):
             workspace_name = str(ctx.workspace_name)
             format_each = "{}/%s".format(runfiles_dir)
 
-            content.add(_mtree_line(runfiles_dir + "/", type = "dir"))
+            content.add(_mtree_line(runfiles_dir, type = "dir"))
             content.add_all(
                 s.default_runfiles.empty_filenames,
                 format_each = format_each,
                 # be careful about what you pass to map_each as it will carry the data structures over to execution phase.
-                map_each = lambda f, e: _mtree_line(_vis_encode(f.removeprefix("../") if f.startswith("../") else workspace_name + "/" + f), "file"),
+                map_each = lambda f, _: _mtree_line(_vis_encode(f[3:] if f.startswith("../") else workspace_name + "/" + f), "file"),
                 allow_closure = True,
             )
             content.add_all(
@@ -518,7 +519,7 @@ def _mtree_impl(ctx):
                 uniquify = True,
                 format_each = format_each,
                 # be careful about what you pass to map_each as it will carry the data structures over to execution phase.
-                map_each = lambda s, e: _expand(s.target_file, e, paths.normalize(workspace_name + "/" + s.path)),
+                map_each = lambda s, e: _expand(s.target_file, e, s.path[3:] if s.path.startswith("../") else workspace_name + "/" + s.path),
                 allow_closure = True,
             )
             content.add_all(
@@ -533,9 +534,19 @@ def _mtree_impl(ctx):
                     _mtree_line(_vis_encode(runfiles_dir + "/_repo_mapping"), "file", content = _vis_encode(repo_mapping.path)),
                 )
 
+            # Register directories that are only indirectly contained in the depsets passed to `add_all`. This is
+            # necessary so that the write action below can expand them.
             nested_directories = []
-            nested_directories.extend([s.target_file for s in s.default_runfiles.symlinks.to_list() if s.target_file.is_directory])
-            nested_directories.extend([s.target_file for s in s.default_runfiles.root_symlinks.to_list() if s.target_file.is_directory])
+            nested_directories.extend([
+                s.target_file
+                for s in s.default_runfiles.symlinks.to_list()
+                if s.target_file.is_directory
+            ])
+            nested_directories.extend([
+                s.target_file
+                for s in s.default_runfiles.root_symlinks.to_list()
+                if s.target_file.is_directory
+            ])
             content.add_all(nested_directories, map_each = _map_to_none)
 
     ctx.actions.write(out, content = content)
