@@ -370,10 +370,19 @@ def _tar_impl(ctx):
         for src in ctx.attr.srcs
     ]
 
+    # TODO: Use lazy mapping of depsets if it becomes available to avoid flattening these depsets.
+    srcs_runfiles_symlink_targets = [
+        symlink.target_file
+        for src in ctx.attr.srcs
+        for symlink in src[DefaultInfo].default_runfiles.symlinks.to_list() + src[DefaultInfo].default_runfiles.root_symlinks.to_list()
+    ]
+    inputs.extend(srcs_runfiles_symlink_targets)
+
     unused_inputs_file = _configured_unused_inputs_file(
         ctx,
-        srcs = depset(direct = ctx.files.srcs + repo_mappings, transitive = srcs_runfiles),
-        keep = depset(direct = [ctx.file.mtree, bsdtar.tarinfo.binary], transitive = [bsdtar.default.files]),
+        srcs = depset(direct = ctx.files.srcs + repo_mappings + srcs_runfiles_symlink_targets, transitive = srcs_runfiles),
+        # Inputs pruning for runfiles symlinks is tricky, so we do not prune them.
+        keep = depset(direct = [ctx.file.mtree, bsdtar.tarinfo.binary] + srcs_runfiles_symlink_targets, transitive = [bsdtar.default.files]),
     )
     if unused_inputs_file:
         inputs.append(unused_inputs_file)
@@ -401,6 +410,8 @@ def _tar_impl(ctx):
     return default_info
 
 def _mtree_line(file, type, content = None, uid = "0", gid = "0", time = "1672560000", mode = "0755"):
+    if type == "dir" and not file.endswith("/"):
+        file += "/"
     spec = [
         file,
         "uid=" + uid,
@@ -426,28 +437,40 @@ def _vis_encode(filename):
     # TODO(#794): correctly encode all filenames by using vis(3) (or porting it)
     return filename.replace(" ", "\\040")
 
-def _expand(file, expander, transform = to_repository_relative_path):
-    expanded = expander.expand(file)
+def _add_parent_lines(lines, path, seen_parents):
+    parent_lines = []
+    for i in range(len(path) - 1, 0, -1):
+        if path[i] == "/":
+            parent = path[:i + 1]
+            if parent in seen_parents:
+                break
+            seen_parents[parent] = True
+            parent_lines.append(_mtree_line(_vis_encode(parent), "dir"))
+    lines.extend(reversed(parent_lines))
+
+def _expand(file, expander, path = None):
+    if not path:
+        path = to_repository_relative_path(file)
     lines = []
-    for e in expanded:
-        path = transform(e)
-        segments = path.split("/")
-        for i in range(1, len(segments)):
-            parent = "/".join(segments[:i])
 
-            # NOTE: The mtree format treats file paths without slashes as "relative" entries.
-            #       If a relative entry is a directory, then it will "change directory" to that
-            #       directory, and any subsequent "relative" entries will be created inside that
-            #       directory. This causes issues when there is a top-level directory that is
-            #       followed by a top-level file, as the file will be created inside the directory.
-            #       To avoid this, we append a slash to the directory path to make it a "full" entry.
-            if i == 1:
-                parent += "/"
-
-            lines.append(_mtree_line(_vis_encode(parent), "dir"))
-
-        lines.append(_mtree_line(_vis_encode(path), "file", content = _vis_encode(e.path)))
+    # The result of this callback is uniquified, so seen_parents is purely an optimization for large
+    # directories.
+    seen_parents = {}
+    if not file.is_directory:
+        _add_parent_lines(lines, path, seen_parents)
+        lines.append(_mtree_line(_vis_encode(path), "file", content = _vis_encode(file.path)))
+    else:
+        for e in expander.expand(file):
+            child_path = path + "/" + e.tree_relative_path
+            _add_parent_lines(lines, child_path, seen_parents)
+            lines.append(_mtree_line(_vis_encode(child_path), "file", content = _vis_encode(e.path)))
     return lines
+
+def _expand_root_symlink(symlink, expander):
+    return _expand(symlink.target_file, expander, symlink.path)
+
+def _map_to_none(_):
+    return None
 
 def _mtree_impl(ctx):
     out = ctx.outputs.out or ctx.actions.declare_file(ctx.attr.name + ".spec")
@@ -473,28 +496,58 @@ def _mtree_impl(ctx):
             # copy workspace name here just in case to prevent ctx
             # to be transferred to execution phase.
             workspace_name = str(ctx.workspace_name)
+            format_each = "{}/%s".format(runfiles_dir)
 
             content.add(_mtree_line(runfiles_dir, type = "dir"))
             content.add_all(
                 s.default_runfiles.empty_filenames,
-                format_each = "{}/%s".format(runfiles_dir),
+                format_each = format_each,
                 # be careful about what you pass to map_each as it will carry the data structures over to execution phase.
-                map_each = lambda f, e: _mtree_line(_vis_encode(f.removeprefix("external/") if f.startswith("external/") else workspace_name + "/" + f), "file"),
+                map_each = lambda f, _: _mtree_line(_vis_encode(f[3:] if f.startswith("../") else workspace_name + "/" + f), "file"),
                 allow_closure = True,
             )
             content.add_all(
                 s.default_runfiles.files,
-                expand_directories = True,
                 uniquify = True,
-                format_each = "{}/%s".format(runfiles_dir),
+                format_each = format_each,
                 # be careful about what you pass to map_each as it will carry the data structures over to execution phase.
-                map_each = lambda f, e: _expand(f, e, lambda f: _to_rlocation_path(f, workspace_name)),
+                map_each = lambda f, e: _expand(f, e, _to_rlocation_path(f, workspace_name)),
                 allow_closure = True,
             )
+            content.add_all(
+                s.default_runfiles.symlinks,
+                uniquify = True,
+                format_each = format_each,
+                # be careful about what you pass to map_each as it will carry the data structures over to execution phase.
+                map_each = lambda s, e: _expand(s.target_file, e, s.path[3:] if s.path.startswith("../") else workspace_name + "/" + s.path),
+                allow_closure = True,
+            )
+            content.add_all(
+                s.default_runfiles.root_symlinks,
+                uniquify = True,
+                format_each = format_each,
+                map_each = _expand_root_symlink,
+            )
+
             if repo_mapping != None:
                 content.add(
                     _mtree_line(_vis_encode(runfiles_dir + "/_repo_mapping"), "file", content = _vis_encode(repo_mapping.path)),
                 )
+
+            # Register directories that are only indirectly contained in the depsets passed to `add_all`. This is
+            # necessary so that the write action below can expand them.
+            nested_directories = []
+            nested_directories.extend([
+                s.target_file
+                for s in s.default_runfiles.symlinks.to_list()
+                if s.target_file.is_directory
+            ])
+            nested_directories.extend([
+                s.target_file
+                for s in s.default_runfiles.root_symlinks.to_list()
+                if s.target_file.is_directory
+            ])
+            content.add_all(nested_directories, map_each = _map_to_none)
 
     ctx.actions.write(out, content = content)
 
