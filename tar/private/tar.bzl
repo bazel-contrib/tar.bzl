@@ -568,7 +568,7 @@ def _mtree_mutate_impl(ctx):
     out_mtree = ctx.outputs.out
 
     # Use bin directory to determine if symlink is within or outside the sandbox
-    assignments["bin_dir"] = ctx.bin_dir
+    assignments["bin_dir"] = ctx.bin_dir.path
 
     if ctx.attr.owner:
         assignments["owner"] = ctx.attr.owner
