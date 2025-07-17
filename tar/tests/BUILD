@@ -310,7 +310,7 @@ tar(
     srcs = ["@bazel_skylib//:LICENSE"],
     out = "10.tar",
     mtree = [
-        "license uid=0 gid=0 time=1672560000 mode=0755 type=file content=$(location @bazel_skylib//:LICENSE)",
+        "license uid=0 gid=0 time=1672560000 mode=0755 type=file content=$(execpath @bazel_skylib//:LICENSE)",
     ],
 )
 
