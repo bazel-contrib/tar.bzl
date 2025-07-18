@@ -141,7 +141,7 @@ _mutate_mtree_attrs = {
         doc = "Specifies the path to the mtree file, which describes the directory structure and metadata for the tar file. Must be a single file.",
     ),
     "_awk": attr.label(
-        default = "@gawk",
+        default = Label("@gawk"),
         cfg = "exec",
         executable = True,
     ),
