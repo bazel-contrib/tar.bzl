@@ -199,7 +199,6 @@ diff_test(
     timeout = "short",
     file1 = "src_file",
     file2 = "cat_src_file_output",
-    tags = ["broken-on-bazel6"],
 )
 
 #############
@@ -566,7 +565,6 @@ assert_tar_listing(
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/native_binary_bin",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_repo_mapping",
     ],
-    tags = ["broken-on-bazel6"],
 )
 
 mtree_mutate(
@@ -608,7 +606,6 @@ assert_tar_listing(
         "lrwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/native_binary_bin -> ../executable.sh",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_repo_mapping",
     ],
-    tags = ["broken-on-bazel6"],
 )
 
 #############
