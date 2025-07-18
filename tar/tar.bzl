@@ -13,7 +13,7 @@ tar_rule = _tar
 
 tar_lib = _tar_lib
 
-def tar(name, mtree = "auto", mutate = None, stamp = 0, **kwargs):
+def tar(name, mtree = "auto", mutate = None, include_runfiles = None, stamp = 0, **kwargs):
     """Wrapper macro around [`tar_rule`](#tar_rule).
 
     ### Options for mtree
@@ -46,6 +46,7 @@ def tar(name, mtree = "auto", mutate = None, stamp = 0, **kwargs):
             Subject to [$(location)](https://bazel.build/reference/be/make-variables#predefined_label_variables)
             and ["Make variable"](https://bazel.build/reference/be/make-variables) substitution.
         mutate: a partially-applied `mtree_mutate` rule
+        include_runfiles: when using "auto" mtree, this controls whether to include runfiles
         stamp: should mtree attribute be stamped
         **kwargs: additional named parameters to pass to `tar_rule`
     """
@@ -53,11 +54,17 @@ def tar(name, mtree = "auto", mutate = None, stamp = 0, **kwargs):
     if mutate and mtree != "auto":
         fail("mutate is only supported when mtree is 'auto'")
 
+    if include_runfiles != None and mtree != "auto":
+        fail("include_runfiles is only supported when mtree is 'auto', otherwise include_runfiles should be set in mtree_spec")
+
     if mtree == "auto":
+        if include_runfiles == None:
+            include_runfiles = True
         mtree_spec(
             name = mtree_target,
             srcs = kwargs.get("srcs", []),
             out = "{}.txt".format(mtree_target),
+            include_runfiles = include_runfiles,
             **propagate_common_rule_attributes(kwargs)
         )
         if mutate:
