@@ -164,7 +164,7 @@ sh_binary(
     name = "cat_src_file",
     srcs = ["cat_src_file.sh"],
     data = ["src_file"],
-    deps = ["@bazel_tools//tools/bash/runfiles"],
+    deps = ["@rules_shell//shell/runfiles"],
 )
 
 tar(
