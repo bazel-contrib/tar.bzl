@@ -5,23 +5,11 @@ workspaces:
       tasks:
         - bazel-7:
             without: true
-        - bazel-6:
+        - bazel-9:
             without: true
   - e2e/smoke
-  - examples:
-      tasks:
-        - bazel-6:
-            without: true
+  - examples
 tasks:
-  - test:
-      name: "Test (Bazel 6.x)"
-      id: bazel-6
-      bazel:
-        flags:
-          - --enable_bzlmod
-          - --test_tag_filters=-broken-on-bazel6
-      env:
-        USE_BAZEL_VERSION: 6.x
   - test:
       name: "Test (Bazel 7.x)"
       id: bazel-7
@@ -32,5 +20,10 @@ tasks:
       id: bazel-8
       env:
         USE_BAZEL_VERSION: 8.x
+  - test:
+      name: Test (Bazel 9.x)
+      id: bazel-9
+      env:
+        USE_BAZEL_VERSION: rolling
 notifications:
   github: {}
