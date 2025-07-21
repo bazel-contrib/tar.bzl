@@ -140,6 +140,11 @@ _mutate_mtree_attrs = {
         allow_single_file = True,
         doc = "Specifies the path to the mtree file, which describes the directory structure and metadata for the tar file. Must be a single file.",
     ),
+    "_awk": attr.label(
+        default = "@gawk",
+        cfg = "exec",
+        executable = True,
+    ),
     "awk_script": attr.label(
         allow_single_file = True,
         default = "@aspect_bazel_lib//lib/private:modify_mtree.awk",
@@ -559,38 +564,41 @@ def _mtree_mutate_impl(ctx):
         for src in ctx.attr.srcs
     ]
     args = ctx.actions.args()
-
+    assignments = {}
     out_mtree = ctx.outputs.out
 
     # Use bin directory to determine if symlink is within or outside the sandbox
-    args.add("-v bin_dir={}".format(ctx.bin_dir.path))
+    assignments["bin_dir"] = ctx.bin_dir.path
 
     if ctx.attr.owner:
-        args.add("-v owner={}".format(ctx.attr.owner))
+        assignments["owner"] = ctx.attr.owner
     if ctx.attr.ownername:
-        args.add("-v ownername={}".format(ctx.attr.ownername))
+        assignments["ownername"] = ctx.attr.ownername
     if ctx.attr.group:
-        args.add("-v group={}".format(ctx.attr.group))
+        assignments["group"] = ctx.attr.group
     if ctx.attr.groupname:
-        args.add("-v groupname={}".format(ctx.attr.groupname))
+        assignments["groupname"] = ctx.attr.groupname
     if ctx.attr.strip_prefix:
-        args.add("-v strip_prefix={}".format(ctx.attr.strip_prefix))
+        assignments["strip_prefix"] = ctx.attr.strip_prefix
     if ctx.attr.package_dir:
-        args.add("-v package_dir={}".format(ctx.attr.package_dir.lstrip("/")))
+        assignments["package_dir"] = ctx.attr.package_dir.lstrip("/")
     if ctx.attr.mtime:
-        args.add("-v mtime={}".format(ctx.attr.mtime))
+        assignments["mtime"] = ctx.attr.mtime
     if ctx.attr.preserve_symlinks:
-        args.add("-v preserve_symlinks=1")
+        assignments["preserve_symlinks"] = 1
+    for (key, value) in assignments.items():
+        args.add_joined(["--assign", key, value], join_with = "=")
+    args.add_joined(["--file", ctx.file.awk_script], join_with = "=")
+    args.add(ctx.file.mtree)
 
     inputs = ctx.files.srcs[:]
     inputs.append(ctx.file.mtree)
     inputs.append(ctx.file.awk_script)
     ctx.actions.run_shell(
         command = """
-        awk $@ -f {awk_script} {mtree} > {out_mtree}
+        {awk} $@ > {out_mtree}
         """.format(
-            awk_script = ctx.file.awk_script.path,
-            mtree = ctx.file.mtree.path,
+            awk = ctx.executable._awk.path,
             out_mtree = out_mtree.path,
         ),
         arguments = [args],
@@ -599,6 +607,7 @@ def _mtree_mutate_impl(ctx):
             transitive = srcs_runfiles,
         ),
         outputs = [out_mtree],
+        tools = [ctx.executable._awk],
     )
 
     return [DefaultInfo(files = depset([out_mtree]))]
