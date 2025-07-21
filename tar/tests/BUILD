@@ -6,7 +6,9 @@ load("@bazel_skylib//rules:write_file.bzl", "write_file")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@tar.bzl", "mtree_mutate", "mtree_spec", "tar")
 load(":asserts.bzl", "assert_tar_listing", "assert_unused_listing")
+load(":directory.bzl", "directory")
 load(":node_modules_tree.bzl", "node_modules_tree")
+load(":runfiles_symlinks.bzl", "runfiles_symlinks")
 
 # The examples below work with both source files and generated files.
 # Here we generate a file to use in the examples.
@@ -539,25 +541,25 @@ assert_tar_listing(
     actual = ":mtree17",
     expected = [
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/a@0.0.0",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/a@0.0.0/node_modules",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/a@0.0.0/node_modules/a",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/a@0.0.0/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/a@0.0.0/node_modules/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/a@0.0.0/node_modules/a/",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/a@0.0.0/node_modules/a/package.json",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/b@0.0.0",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/b@0.0.0/node_modules",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/b@0.0.0/node_modules/a",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/b@0.0.0/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/b@0.0.0/node_modules/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/b@0.0.0/node_modules/a/",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/b@0.0.0/node_modules/a/package.json",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/a",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/a/",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/a/package.json",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/dir",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/dir/",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/dir/a",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/dir/b",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/executable.sh",
@@ -581,25 +583,25 @@ assert_tar_listing(
     actual = ":resolve_symlinks",
     expected = [
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/",
         "lrwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin -> ../native_binary_bin.runfiles/_main/tar/tests/executable.sh",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/a@0.0.0",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/a@0.0.0/node_modules",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/a@0.0.0/node_modules/a",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/a@0.0.0/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/a@0.0.0/node_modules/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/a@0.0.0/node_modules/a/",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/a@0.0.0/node_modules/a/package.json",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/b@0.0.0",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/b@0.0.0/node_modules",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/b@0.0.0/node_modules/a",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/b@0.0.0/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/b@0.0.0/node_modules/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/b@0.0.0/node_modules/a/",
         "lrwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/.pnpm/b@0.0.0/node_modules/a/package.json -> ../../../../a@0.0.0/node_modules/a/package.json",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/a",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/a/",
         "lrwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/node_modules/a/package.json -> ../../.pnpm/a@0.0.0/node_modules/a/package.json",
-        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/dir",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/dir/",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/dir/a",
         "lrwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/dir/b -> ../a",
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_main/tar/tests/executable.sh",
@@ -607,4 +609,133 @@ assert_tar_listing(
         "-rwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/native_binary_bin.runfiles/_repo_mapping",
     ],
     tags = ["broken-on-bazel6"],
+)
+
+#############
+# Example 18: runfiles symlinks
+directory(
+    name = "symlinks_dir",
+    files = [
+        "nested/in/a/dir/file",
+        "nested/in/a/sibling/another_file",
+        "nested/in/a/sibling/file",
+        "other/subtree/other/file",
+        "top_level",
+    ],
+)
+
+runfiles_symlinks(
+    name = "runfiles_symlinks",
+    symlinks = {
+        ":symlinks_dir": "in/a/subdir",
+        "src_file": "top_level",
+        ":fixture1": "../nested/file",
+    },
+)
+
+tar(
+    name = "tar_runfiles_symlinks",
+    srcs = [
+        ":runfiles_symlinks",
+    ],
+)
+
+assert_tar_listing(
+    name = "test18_runfiles_symlinks",
+    actual = ":tar_runfiles_symlinks",
+    # This file has a different size depending on the Bazel version, so don't assert on it being in the tar
+    exclude = "tar/tests/runfiles_symlinks.runfiles/_repo_mapping",
+    expected = [
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/",
+        "-rwxr-xr-x  0 0      0          10 Jan  1  2023 tar/tests/runfiles_symlinks",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/tar/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/tar/tests/",
+        "-rwxr-xr-x  0 0      0          10 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/tar/tests/runfiles_symlinks",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/in/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/in/a/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/in/a/subdir/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/in/a/subdir/nested/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/in/a/subdir/nested/in/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/in/a/subdir/nested/in/a/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/in/a/subdir/nested/in/a/dir/",
+        "-rwxr-xr-x  0 0      0          31 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/in/a/subdir/nested/in/a/dir/file",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/in/a/subdir/nested/in/a/sibling/",
+        "-rwxr-xr-x  0 0      0          43 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/in/a/subdir/nested/in/a/sibling/another_file",
+        "-rwxr-xr-x  0 0      0          35 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/in/a/subdir/nested/in/a/sibling/file",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/in/a/subdir/other/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/in/a/subdir/other/subtree/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/in/a/subdir/other/subtree/other/",
+        "-rwxr-xr-x  0 0      0          35 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/in/a/subdir/other/subtree/other/file",
+        "-rwxr-xr-x  0 0      0          20 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/in/a/subdir/top_level",
+        "-rwxr-xr-x  0 0      0          21 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/top_level",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/nested/",
+        "-rwxr-xr-x  0 0      0           7 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/nested/file",
+    ],
+)
+
+#############
+# Example 19: runfiles root_symlinks
+directory(
+    name = "root_symlinks_dir",
+    files = [
+        "nested/in/a/dir/file",
+        "nested/in/a/sibling/another_file",
+        "nested/in/a/sibling/file",
+        "other/subtree/other/file",
+        "top_level",
+    ],
+)
+
+runfiles_symlinks(
+    name = "runfiles_root_symlinks",
+    root_symlinks = {
+        ":symlinks_dir": "in/a/subdir",
+        "src_file": "top_level",
+        ":fixture1": "nested/file",
+    },
+)
+
+tar(
+    name = "tar_runfiles_root_symlinks",
+    srcs = [
+        ":runfiles_root_symlinks",
+    ],
+)
+
+assert_tar_listing(
+    name = "test19_runfiles_root_symlinks",
+    actual = ":tar_runfiles_root_symlinks",
+    exclude = "tar/tests/runfiles_root_symlinks.runfiles/_repo_mapping",
+    expected = [
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/",
+        "-rwxr-xr-x  0 0      0          10 Jan  1  2023 tar/tests/runfiles_root_symlinks",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/_main/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/_main/tar/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/_main/tar/tests/",
+        "-rwxr-xr-x  0 0      0          10 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/_main/tar/tests/runfiles_root_symlinks",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/in/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/in/a/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/in/a/subdir/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/in/a/subdir/nested/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/in/a/subdir/nested/in/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/in/a/subdir/nested/in/a/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/in/a/subdir/nested/in/a/dir/",
+        "-rwxr-xr-x  0 0      0          31 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/in/a/subdir/nested/in/a/dir/file",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/in/a/subdir/nested/in/a/sibling/",
+        "-rwxr-xr-x  0 0      0          43 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/in/a/subdir/nested/in/a/sibling/another_file",
+        "-rwxr-xr-x  0 0      0          35 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/in/a/subdir/nested/in/a/sibling/file",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/in/a/subdir/other/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/in/a/subdir/other/subtree/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/in/a/subdir/other/subtree/other/",
+        "-rwxr-xr-x  0 0      0          35 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/in/a/subdir/other/subtree/other/file",
+        "-rwxr-xr-x  0 0      0          20 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/in/a/subdir/top_level",
+        "-rwxr-xr-x  0 0      0          21 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/top_level",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/nested/",
+        "-rwxr-xr-x  0 0      0           7 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/nested/file",
+    ],
 )
