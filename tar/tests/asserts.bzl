@@ -4,16 +4,18 @@ load("@aspect_bazel_lib//lib:diff_test.bzl", "diff_test")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
 
 # buildifier: disable=function-docstring
-def assert_tar_listing(name, actual, expected, tags = []):
+def assert_tar_listing(name, actual, expected, exclude = "", tags = []):
     actual_listing = "{}_listing".format(name)
     expected_listing = "{}_expected".format(name)
 
+    if exclude:
+        exclude = "--exclude {}".format(exclude)
     native.genrule(
         name = actual_listing,
         srcs = [actual],
         testonly = True,
         outs = ["{}.listing".format(name)],
-        cmd = "$(BSDTAR_BIN) -tvf $(execpath {}) >$@".format(actual),
+        cmd = "$(BSDTAR_BIN) --list --verbose {} --file $(execpath {}) >$@".format(exclude, actual),
         toolchains = ["@bsd_tar_toolchains//:resolved_toolchain"],
     )
 

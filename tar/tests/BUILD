@@ -643,6 +643,8 @@ tar(
 assert_tar_listing(
     name = "test18_runfiles_symlinks",
     actual = ":tar_runfiles_symlinks",
+    # This file has a different size depending on the Bazel version, so don't assert on it being in the tar
+    exclude = "tar/tests/runfiles_symlinks.runfiles/_repo_mapping",
     expected = [
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/",
@@ -671,7 +673,6 @@ assert_tar_listing(
         "-rwxr-xr-x  0 0      0          21 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_main/top_level",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/nested/",
         "-rwxr-xr-x  0 0      0           7 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/nested/file",
-        "-rwxr-xr-x  0 0      0          15 Jan  1  2023 tar/tests/runfiles_symlinks.runfiles/_repo_mapping",
     ],
 )
 
@@ -707,6 +708,7 @@ tar(
 assert_tar_listing(
     name = "test19_runfiles_root_symlinks",
     actual = ":tar_runfiles_root_symlinks",
+    exclude = "tar/tests/runfiles_root_symlinks.runfiles/_repo_mapping",
     expected = [
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/",
@@ -735,6 +737,5 @@ assert_tar_listing(
         "-rwxr-xr-x  0 0      0          21 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/top_level",
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/nested/",
         "-rwxr-xr-x  0 0      0           7 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/nested/file",
-        "-rwxr-xr-x  0 0      0          15 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/_repo_mapping",
     ],
 )
