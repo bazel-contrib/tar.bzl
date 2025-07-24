@@ -10,6 +10,11 @@ load(":directory.bzl", "directory")
 load(":node_modules_tree.bzl", "node_modules_tree")
 load(":runfiles_symlinks.bzl", "runfiles_symlinks")
 
+_NOT_WINDOWS = select({
+    "@platforms//os:windows": ["@platforms//:incompatible"],
+    "//conditions:default": [],
+})
+
 # The examples below work with both source files and generated files.
 # Here we generate a file to use in the examples.
 write_file(
@@ -29,11 +34,8 @@ genrule(
     ],
     outs = ["1.tar"],
     cmd = "$(BSDTAR_BIN) --create --dereference --file $@ -s '#$(BINDIR)##' $(execpath :fixture1) $(execpath src_file)",
-    target_compatible_with = select({
-        # bsdtar.exe: -s is not supported by this version of bsdtar
-        "@platforms//os:windows": ["@platforms//:incompatible"],
-        "//conditions:default": [],
-    }),
+    # bsdtar.exe: -s is not supported by this version of bsdtar
+    target_compatible_with = _NOT_WINDOWS,
     toolchains = ["@bsd_tar_toolchains//:resolved_toolchain"],
 )
 
@@ -64,6 +66,7 @@ tar(
         "usr/bin uid=0 gid=0 mode=0755 time=1672560000 type=dir",
         "usr/bin/ls uid=0 gid=0 mode=0755 time=1672560000 type=file content={}/src_file".format(package_name()),
     ],
+    target_compatible_with = _NOT_WINDOWS,
 )
 
 assert_tar_listing(
@@ -185,12 +188,9 @@ genrule(
         ./tar/tests/cat_src_file
       ) > $@
     """,
-    target_compatible_with = select({
-        # requires runfiles tree, otherwise get
-        # ERROR: cannot find bazel_tools/tools/bash/runfiles/runfiles.bash
-        "@platforms//os:windows": ["@platforms//:incompatible"],
-        "//conditions:default": [],
-    }),
+    # requires runfiles tree, otherwise get
+    # ERROR: cannot find bazel_tools/tools/bash/runfiles/runfiles.bash
+    target_compatible_with = _NOT_WINDOWS,
     toolchains = ["@bsd_tar_toolchains//:resolved_toolchain"],
 )
 
@@ -312,6 +312,8 @@ tar(
     mtree = [
         "license uid=0 gid=0 time=1672560000 mode=0755 type=file content=$(execpath @bazel_skylib//:LICENSE)",
     ],
+    # Mtree file isn't encoded with windows line endings. Use a separate mtree rule with expand_template on windows.
+    target_compatible_with = _NOT_WINDOWS,
 )
 
 assert_tar_listing(
@@ -327,6 +329,7 @@ assert_tar_listing(
 tar(
     name = "create_tmp",
     mtree = ["./tmp time=1501783453.0 mode=1777 gid=0 uid=0 type=dir"],
+    target_compatible_with = _NOT_WINDOWS,
 )
 
 assert_tar_listing(

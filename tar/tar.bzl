@@ -88,7 +88,7 @@ def tar(name, mtree = "auto", mutate = None, include_runfiles = None, stamp = 0,
             substitutions = {
                 # expand_template only expands strings in "substitutions" dict. Here
                 # we expand mtree and then replace the template with expanded mtree.
-                "{content}": "\r\n".join(mtree),
+                "{content}": "\n".join(mtree),
             },
             stamp = stamp,
             **propagate_common_rule_attributes(kwargs)
