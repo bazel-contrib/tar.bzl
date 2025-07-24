@@ -15,7 +15,7 @@ bazel_dep(name = "bazelrc-preset.bzl", version = "1.0.1", dev_dependency = True)
 bazel_dep(name = "buildifier_prebuilt", version = "8.0.3", dev_dependency = True)
 bazel_dep(name = "rules_shell", version = "0.4.0", dev_dependency = True)
 
-bazel_lib_toolchains = use_extension("@aspect_bazel_lib//lib:extensions.bzl", "toolchains")
-use_repo(bazel_lib_toolchains, "bsd_tar_toolchains")
+toolchains = use_extension("//tar:extensions.bzl", "toolchains")
+use_repo(toolchains, "bsd_tar_toolchains")
 
 register_toolchains("@bsd_tar_toolchains//:all")

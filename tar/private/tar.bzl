@@ -3,7 +3,7 @@
 load("@aspect_bazel_lib//lib:paths.bzl", "to_repository_relative_path")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
-TAR_TOOLCHAIN_TYPE = "@aspect_bazel_lib//lib:tar_toolchain_type"
+TAR_TOOLCHAIN_TYPE = "//tar/toolchain:type"
 
 # https://www.gnu.org/software/tar/manual/html_section/Compression.html
 _ACCEPTED_EXTENSIONS = [
@@ -399,7 +399,7 @@ def _tar_impl(ctx):
         arguments = [args],
         mnemonic = "Tar",
         unused_inputs_list = unused_inputs_file,
-        toolchain = "@aspect_bazel_lib//lib:tar_toolchain_type",
+        toolchain = TAR_TOOLCHAIN_TYPE,
     )
 
     # TODO(3.0): Always return a list of providers.
