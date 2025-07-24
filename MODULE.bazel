@@ -2,7 +2,6 @@
 
 module(
     name = "tar.bzl",
-    version = "0.0.0",
     compatibility_level = 1,
 )
 
