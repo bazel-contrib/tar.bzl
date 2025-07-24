@@ -19,7 +19,7 @@ jobs:
       matrix:
         # Note: linux is tested on Buildkite via Aspect Workflows
         os:
-          # - macos-latest
+          - macos-latest
           - windows-latest
     runs-on: ${{ matrix.os }}
     steps:
