@@ -1,10 +1,6 @@
 "Bazel dependencies"
 
-module(
-    name = "tar.bzl",
-    version = "0.0.0",
-    compatibility_level = 1,
-)
+module(name = "tar.bzl")
 
 bazel_dep(name = "aspect_bazel_lib", version = "2.19.3")
 bazel_dep(name = "bazel_skylib", version = "1.4.1")
