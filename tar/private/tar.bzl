@@ -86,6 +86,11 @@ _tar_attrs = {
         doc = "Compress the archive file with a supported algorithm.",
         values = _ACCEPTED_COMPRESSION_TYPES,
     ),
+    "_pigz": attr.label(
+        default = "@pigz",
+        cfg = "exec",
+        executable = True,
+    ),
     "compute_unused_inputs": attr.int(
         doc = """
 Whether to discover and prune input files that will not contribute to the archive.
@@ -184,14 +189,13 @@ _mutate_mtree_attrs = {
     ),
 }
 
-def _add_compression_args(compress, args):
+def _add_compression_args(compress, _pigz, args):
     if compress == "bzip2":
         args.add("--bzip2")
     if compress == "compress":
         args.add("--compress")
     if compress == "gzip":
-        args.add("--gzip")
-        args.add("--options=gzip:!timestamp")  # See https://datatracker.ietf.org/doc/html/rfc1952#page-5 why this option
+        args.add("--use-compress-program={} -n".format(_pigz))
     if compress == "lrzip":
         args.add("--lrzip")
     if compress == "lzma":
@@ -353,7 +357,7 @@ def _tar_impl(ctx):
     args.add_all(ctx.attr.args)
 
     # Compression args
-    _add_compression_args(ctx.attr.compress, args)
+    _add_compression_args(ctx.attr.compress, ctx.executable._pigz.path, args)
 
     ext = _COMPRESSION_TO_EXTENSION[ctx.attr.compress] if ctx.attr.compress else ".tar"
 
@@ -400,6 +404,7 @@ def _tar_impl(ctx):
         mnemonic = "Tar",
         unused_inputs_list = unused_inputs_file,
         toolchain = TAR_TOOLCHAIN_TYPE,
+        tools = [ctx.executable._pigz],
     )
 
     # TODO(3.0): Always return a list of providers.
