@@ -85,7 +85,7 @@ https://man.freebsd.org/cgi/man.cgi?mtree(8)
 <pre>
 load("@tar.bzl//tar:tar.bzl", "tar_lib")
 
-tar_lib.common.add_compression_args(<a href="#tar_lib.common.add_compression_args-compress">compress</a>, <a href="#tar_lib.common.add_compression_args-args">args</a>)
+tar_lib.common.add_compression_args(<a href="#tar_lib.common.add_compression_args-compress">compress</a>, <a href="#tar_lib.common.add_compression_args-_pigz">_pigz</a>, <a href="#tar_lib.common.add_compression_args-args">args</a>)
 </pre>
 
 
@@ -96,6 +96,7 @@ tar_lib.common.add_compression_args(<a href="#tar_lib.common.add_compression_arg
 | Name  | Description | Default Value |
 | :------------- | :------------- | :------------- |
 | <a id="tar_lib.common.add_compression_args-compress"></a>compress |  <p align="center"> - </p>   |  none |
+| <a id="tar_lib.common.add_compression_args-_pigz"></a>_pigz |  <p align="center"> - </p>   |  none |
 | <a id="tar_lib.common.add_compression_args-args"></a>args |  <p align="center"> - </p>   |  none |
 
 
