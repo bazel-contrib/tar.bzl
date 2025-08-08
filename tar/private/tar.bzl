@@ -258,7 +258,7 @@ def _fmt_keep_inputs_line(file):
     # The tar.keep_inputs.txt file has a single column of vis-encoded paths of the files to keep.
     return _vis_encode(file.path)
 
-def _configured_unused_inputs_file(ctx, srcs, keep):
+def _configured_unused_inputs_file(ctx, srcs, keep, mtree_file):
     """
     Compute the unused_inputs_list, if configured.
 
@@ -266,6 +266,7 @@ def _configured_unused_inputs_file(ctx, srcs, keep):
         ctx: `tar` rule context. Must provide `_tar_attrs` and a `coreutils_toolchain_type` toolchain.
         srcs: sequence or depset. The set of all input sources being provided to the `tar` rule.
         keep: sequence or depset. A hardcoded set of sources to consider "used" regardless of whether or not they appear in the mtree.
+        mtree_file: file. The mtree file to use for comparison.
 
     Returns: file or None. List of inputs unused by the `Tar` action.
     """
@@ -312,7 +313,7 @@ def _configured_unused_inputs_file(ctx, srcs, keep):
     #       See also: https://github.com/bazel-contrib/bazel-lib/issues/794
     ctx.actions.run_shell(
         outputs = [unused_inputs],
-        inputs = [prunable_inputs, keep_inputs, ctx.file.mtree],
+        inputs = [prunable_inputs, keep_inputs, mtree_file],
         tools = [coreutils],
         command = '''
             "$COREUTILS" join -v 1                                                            \\
@@ -328,7 +329,7 @@ def _configured_unused_inputs_file(ctx, srcs, keep):
             "COREUTILS": coreutils.path,
             "PRUNABLE_INPUTS": prunable_inputs.path,
             "KEEP_INPUTS": keep_inputs.path,
-            "MTREE": ctx.file.mtree.path,
+            "MTREE": mtree_file.path,
             "UNUSED_INPUTS": unused_inputs.path,
         },
         mnemonic = "UnusedTarInputs",
@@ -340,6 +341,14 @@ def _configured_unused_inputs_file(ctx, srcs, keep):
 # TODO(3.0): Access field directly after minimum bazel_compatibility advanced to or beyond v7.0.0.
 def _repo_mapping_manifest(files_to_run):
     return getattr(files_to_run, "repo_mapping_manifest", None)
+
+def _windows_host(ctx):
+    """Returns true if the host platform is windows.
+    
+    The typical approach using ctx.target_platform_has_constraint does not work for transitioned
+    build targets. We need to know the host platform, not the target platform.
+    """
+    return ctx.configuration.host_path_separator == ";"
 
 def _tar_impl(ctx):
     bsdtar = ctx.toolchains[TAR_TOOLCHAIN_TYPE]
@@ -360,8 +369,20 @@ def _tar_impl(ctx):
     out = ctx.outputs.out or ctx.actions.declare_file(ctx.attr.name + ext)
     args.add("--file", out)
 
-    args.add(ctx.file.mtree, format = "@%s")
-    inputs.append(ctx.file.mtree)
+    mtree_lf = ctx.attr.mtree
+    if _windows_host(ctx):
+        # Convert mtree file from CRLF to LF line endings
+        mtree_lf = ctx.actions.declare_file(ctx.attr.name + "_mtree_lf.spec")
+        ctx.actions.run_shell(
+            inputs = [ctx.file.mtree],
+            outputs = [mtree_lf],
+            command = "tr -d '\\r' < \"$1\" > \"$2\"",
+            arguments = [ctx.file.mtree.path, mtree_lf.path],
+            mnemonic = "ConvertMtreeCRLFToLF",
+        )
+
+    args.add(mtree_lf, format = "@%s")
+    inputs.append(mtree_lf)
 
     repo_mappings = [
         _repo_mapping_manifest(src[DefaultInfo].files_to_run)
@@ -387,7 +408,8 @@ def _tar_impl(ctx):
         ctx,
         srcs = depset(direct = ctx.files.srcs + repo_mappings + srcs_runfiles_symlink_targets, transitive = srcs_runfiles),
         # Inputs pruning for runfiles symlinks is tricky, so we do not prune them.
-        keep = depset(direct = [ctx.file.mtree, bsdtar.tarinfo.binary] + srcs_runfiles_symlink_targets, transitive = [bsdtar.default.files]),
+        keep = depset(direct = [mtree_lf, bsdtar.tarinfo.binary] + srcs_runfiles_symlink_targets, transitive = [bsdtar.default.files]),
+        mtree_file = mtree_lf,
     )
     if unused_inputs_file:
         inputs.append(unused_inputs_file)
