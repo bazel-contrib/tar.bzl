@@ -382,7 +382,6 @@ def _tar_impl(ctx):
         )
 
     args.add(mtree_lf, format = "@%s")
-    inputs.append(mtree_lf)
 
     repo_mappings = [
         _repo_mapping_manifest(src[DefaultInfo].files_to_run)
