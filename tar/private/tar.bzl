@@ -408,7 +408,7 @@ def _tar_impl(ctx):
         ctx,
         srcs = depset(direct = ctx.files.srcs + repo_mappings + srcs_runfiles_symlink_targets, transitive = srcs_runfiles),
         # Inputs pruning for runfiles symlinks is tricky, so we do not prune them.
-        keep = depset(direct = [mtree_lf, bsdtar.tarinfo.binary] + srcs_runfiles_symlink_targets, transitive = [bsdtar.default.files]),
+        keep = depset(direct = [bsdtar.tarinfo.binary] + srcs_runfiles_symlink_targets, transitive = [bsdtar.default.files]),
         mtree_file = mtree_lf,
     )
     if unused_inputs_file:
