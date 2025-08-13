@@ -86,6 +86,14 @@ _tar_attrs = {
         doc = "Compress the archive file with a supported algorithm.",
         values = _ACCEPTED_COMPRESSION_TYPES,
     ),
+    "compressor": attr.label(
+        doc = "External tool which can compress the archive.",
+        executable = True,
+        cfg = "exec",
+    ),
+    "compressor_args": attr.string(
+        doc = "Arg list for `compressor`.",
+    ),
     "compute_unused_inputs": attr.int(
         doc = """
 Whether to discover and prune input files that will not contribute to the archive.
@@ -353,7 +361,10 @@ def _tar_impl(ctx):
     args.add_all(ctx.attr.args)
 
     # Compression args
-    _add_compression_args(ctx.attr.compress, args)
+    if ctx.executable.compressor:
+        args.add("--use-compress-program", "%s %s" % (ctx.executable.compressor.path, ctx.attr.compressor_args))
+    else:
+        _add_compression_args(ctx.attr.compress, args)
 
     ext = _COMPRESSION_TO_EXTENSION[ctx.attr.compress] if ctx.attr.compress else ".tar"
 
@@ -400,6 +411,7 @@ def _tar_impl(ctx):
         mnemonic = "Tar",
         unused_inputs_list = unused_inputs_file,
         toolchain = TAR_TOOLCHAIN_TYPE,
+        tools = [ctx.executable.compressor] if ctx.executable.compressor else [],
     )
 
     # TODO(3.0): Always return a list of providers.
