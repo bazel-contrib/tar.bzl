@@ -6,27 +6,27 @@ Of course they are free to just register a different toolchain themselves.
 
 BSDTAR_PREBUILT = {
     "darwin_amd64": (
-        "https://github.com/aspect-build/bsdtar-prebuilt/releases/download/v3.8.1/tar_darwin_amd64",
-        "921118f1d043aff08a8d7d7b477217781efb9dacad111646add724bc51575c6a",
+        "https://github.com/aspect-build/bsdtar-prebuilt/releases/download/v3.8.1-fix.1/tar_darwin_amd64",
+        "e8893f7d775d070a333dc386b2aab70dfa43411fcd890222c81212724be7de25",
     ),
     "darwin_arm64": (
-        "https://github.com/aspect-build/bsdtar-prebuilt/releases/download/v3.8.1/tar_darwin_arm64",
-        "9e78a0b3e21bc05c67e54004e5b29c2b19c3a9f16ccec4de2a227b1e01aea5fd",
+        "https://github.com/aspect-build/bsdtar-prebuilt/releases/download/v3.8.1-fix.1/tar_darwin_arm64",
+        "48c1bd214aac26487eaf623d17b77ebce4db3249be851a54edcc940d09d50999",
     ),
     "linux_amd64": (
-        "https://github.com/aspect-build/bsdtar-prebuilt/releases/download/v3.8.1/tar_linux_amd64",
-        "a703af6fc8df1a89f1ca864c651a9003b75069dd6b80bd32dcd94a7d255df07d",
+        "https://github.com/aspect-build/bsdtar-prebuilt/releases/download/v3.8.1-fix.1/tar_linux_amd64",
+        "fff8f72758a52e60fe82beae64b18e7996467013ffe8bec09173d1ba6b66e490",
     ),
     "linux_arm64": (
-        "https://github.com/aspect-build/bsdtar-prebuilt/releases/download/v3.8.1/tar_linux_arm64",
-        "663f498baab2a9b7758e46d0c377b311c5b058758a37958372a0503c5dda4028",
+        "https://github.com/aspect-build/bsdtar-prebuilt/releases/download/v3.8.1-fix.1/tar_linux_arm64",
+        "683468ae45d371e4f392b0e5a524440f6f4507d7da0db60d03ff31f3cf951fc3",
     ),
     "windows_arm64": (
-        "https://github.com/aspect-build/bsdtar-prebuilt/releases/download/v3.8.1/tar_windows_arm64.exe",
-        "1cb490a72385a394bc3643d8409717c544b7af11a24864dc7bf15f1f7333da22",
+        "https://github.com/aspect-build/bsdtar-prebuilt/releases/download/v3.8.1-fix.1/tar_windows_arm64.exe",
+        "130d69268b0a387bca387d00663821779dd1915557caf7fcbfd5ded3f41074f3",
     ),
     "windows_amd64": (
-        "https://github.com/aspect-build/bsdtar-prebuilt/releases/download/v3.8.1/tar_windows_x86_64.exe",
-        "a548b165eea72e8b8b260b15f9f77625423a8f40c4e436dc235ad9e575b285e2",
+        "https://github.com/aspect-build/bsdtar-prebuilt/releases/download/v3.8.1-fix.1/tar_windows_x86_64.exe",
+        "f48c81e1812956adb4906c6f057ca856dd280a455e7867d77800e6d5ef9fc81d",
     ),
 }
