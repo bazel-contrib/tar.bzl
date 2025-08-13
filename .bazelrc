@@ -1,7 +1,7 @@
 import %workspace%/tools/preset.bazelrc
 
 # also see: https://blog.aspect.build/configuring-bazels-downloader
-common --downloader_config=tools/downloader.cfg
+common --experimental_downloader_config=tools/downloader.cfg
 
 # Don’t want to push a rules author to update their deps if not needed.
 # https://bazel.build/reference/command-line-reference#flag--check_direct_dependencies
