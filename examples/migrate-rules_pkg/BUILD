@@ -43,6 +43,22 @@ tar(
     ),
 )
 
+########### compression options ################
+pkg_tar(
+    name = "old3",
+    srcs = [":static"],
+    mode = "0755",
+    package_dir = "/usr/share/nginx/html",
+)
+
+# -> change to ->
+tar(
+    name = "new3",
+    srcs = [":static"],
+    compressor = "@pigz",
+    compressor_args = "-n",
+)
+
 ########## TEST #################
 [
     assert_tars_match(
@@ -50,5 +66,5 @@ tar(
         actual = "new%s" % i,
         expected = "old%s" % i,
     )
-    for i in range(1, 3)
+    for i in range(1, 4)
 ]
