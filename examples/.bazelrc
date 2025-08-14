@@ -1,1 +1,2 @@
 test --test_output=errors
+common --experimental_downloader_config=../tools/downloader.cfg
