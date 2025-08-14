@@ -1,6 +1,7 @@
 "Make shorter assertions"
 
 load("@aspect_bazel_lib//lib:diff_test.bzl", "diff_test")
+load("@bazel_features//:features.bzl", "bazel_features")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
 
 # buildifier: disable=function-docstring
@@ -77,24 +78,41 @@ def assert_unused_listing(name, actual, expected):
         timeout = "short",
     )
 
-def assert_tars_match(name, actual, expected):
+def assert_tars_match(name, actual, expected, sort_listing = False):
     """Assert that two tars match.
 
     Args:
         name: name of the target
         actual: actual tar file
         expected: expected tar file
+        sort_listing: sort the listings before diffing them
     """
     actual_listing = "{}_listing".format(name)
     expected_listing = "{}_expected".format(name)
-    extract = "$(BSDTAR_BIN) -tvf $(execpath {}) >$@"
+
+    if bazel_features.toolchains.genrule_accepts_toolchain_types:
+        toolchains = [Label("//tar/toolchain:type")]
+    else:
+        toolchains = [Label("@bsd_tar_toolchains//:resolved_toolchain")]
+
+    extract = "$(BSDTAR_BIN) -tvf $(execpath {})"
+    if sort_listing:
+        extract += " | $(COREUTILS_BIN) sort"
+
+        if bazel_features.toolchains.genrule_accepts_toolchain_types:
+            toolchains.append(Label("@aspect_bazel_lib//lib:coreutils_toolchain_type"))
+        else:
+            toolchains.append(Label("@coreutils_toolchains//:resolved_toolchain"))
+
+    extract += " >$@"
+
     native.genrule(
         name = actual_listing,
         srcs = [actual],
         testonly = True,
         outs = ["{}.actual".format(name)],
         cmd = extract.format(actual),
-        toolchains = ["@bsd_tar_toolchains//:resolved_toolchain"],
+        toolchains = toolchains,
     )
 
     native.genrule(
@@ -103,7 +121,7 @@ def assert_tars_match(name, actual, expected):
         testonly = True,
         outs = ["{}.expected".format(name)],
         cmd = extract.format(expected),
-        toolchains = ["@bsd_tar_toolchains//:resolved_toolchain"],
+        toolchains = toolchains,
     )
 
     diff_test(
