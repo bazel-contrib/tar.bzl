@@ -47,8 +47,8 @@ tar(
 pkg_tar(
     name = "old3",
     srcs = [":static"],
-    mode = "0755",
-    package_dir = "/usr/share/nginx/html",
+    compressor = "@pigz",
+    compressor_args = "-n",
 )
 
 # -> change to ->
