@@ -3,7 +3,7 @@
 load("@aspect_bazel_lib//lib:paths.bzl", "to_repository_relative_path")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
-TAR_TOOLCHAIN_TYPE = "//tar/toolchain:type"
+TAR_TOOLCHAIN_TYPE = "@tar.bzl//tar/toolchain:type"
 
 # https://www.gnu.org/software/tar/manual/html_section/Compression.html
 _ACCEPTED_EXTENSIONS = [
