@@ -9,6 +9,9 @@ workspaces:
             without: true
   - e2e/smoke
   - examples
+bazel:
+  flags:
+    - --config=ci
 tasks:
   - test:
       name: "Test (Bazel 7.x)"
