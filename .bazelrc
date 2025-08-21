@@ -4,3 +4,6 @@ common --config=ruleset
 
 # also see: https://blog.aspect.build/configuring-bazels-downloader
 common --experimental_downloader_config=tools/downloader.cfg
+
+# CI should never be updating the lockfile (if so, that means someone forgot to check it in)
+common:ci --lockfile_mode=error
