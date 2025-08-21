@@ -10,8 +10,8 @@ workspaces:
   - e2e/smoke
   - examples
 bazel:
-    flags:
-        - --config=ci
+  flags:
+    - --config=ci
 tasks:
   - test:
       name: "Test (Bazel 7.x)"
