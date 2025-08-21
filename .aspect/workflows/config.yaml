@@ -13,16 +13,20 @@ tasks:
   - test:
       name: "Test (Bazel 7.x)"
       id: bazel-7
+      flags: &flags
+        - --config=ci
       env:
         USE_BAZEL_VERSION: 7.x
   - test:
       name: "Test (Bazel 8.x)"
       id: bazel-8
+      flags: *flags
       env:
         USE_BAZEL_VERSION: 8.x
   - test:
       name: Test (Bazel 9.x)
       id: bazel-9
+      flags: *flags
       env:
         USE_BAZEL_VERSION: rolling
 notifications:
