@@ -132,47 +132,47 @@ function make_relative_link(path1, path2, i, common, target, relative_path, back
         # See https://github.com/bazelbuild/rules_pkg/pull/609
 
         symlink = ""
-	symlink_content = ""
+        symlink_content = ""
         if ($0 ~ /type=file/ && $0 ~ /content=/) {
             match($0, /content=[^ ]+/)
             content_field = substr($0, RSTART, RLENGTH)
             split(content_field, parts, "=")
             path = parts[2]
-	    # Store paths for look up
-	    symlink_map[path] = $1
-	    # Resolve the symlink if it exists
-	    resolved_path = ""
-	    cmd = "readlink -f \"" path "\""
-	    cmd | getline resolved_path
-	    close(cmd)
-	    # If readlink -f fails use readlink for relative links
-	    if (resolved_path == "") {
-		cmd = "readlink \"" path "\""
-		cmd | getline resolved_path
-		close(cmd)
-	    }
+            # Store paths for look up
+            symlink_map[path] = $1
+            # Resolve the symlink if it exists
+            resolved_path = ""
+            cmd = "readlink -f \"" path "\""
+            cmd | getline resolved_path
+            close(cmd)
+            # If readlink -f fails use readlink for relative links
+            if (resolved_path == "") {
+                cmd = "readlink \"" path "\""
+                cmd | getline resolved_path
+                close(cmd)
+            }
 
 
-	    if (resolved_path) {
-		if (resolved_path ~ bin_dir || resolved_path ~ /\.\.\//) {
-		    # Strip down the resolved path to start from bin_dir
-		    sub("^.*" bin_dir, bin_dir, resolved_path)
-		    # If the resolved path is different from the original path,
-		    # or if it's a relative path
-		    if (path != resolved_path || resolved_path ~ /\.\.\//) {
-		        symlink = resolved_path
-			symlink_content = path
-		    }
-		}
-	    }
+            if (resolved_path) {
+                if (resolved_path ~ bin_dir || resolved_path ~ /\.\.\//) {
+                    # Strip down the resolved path to start from bin_dir
+                    sub("^.*" bin_dir, bin_dir, resolved_path)
+                    # If the resolved path is different from the original path,
+                    # or if it's a relative path
+                    if (path != resolved_path || resolved_path ~ /\.\.\//) {
+                        symlink = resolved_path
+                        symlink_content = path
+                    }
+                }
+            }
         }
-	if (symlink != "") {
-	  # Store the original line with the resolved path
-	  line_array[NR] = $0 SUBSEP $1 SUBSEP resolved_path
-	  }
-	else {
-	    line_array[NR] = $0  # Store other lines too, with an empty path
-	}
+        if (symlink != "") {
+          # Store the original line with the resolved path
+          line_array[NR] = $0 SUBSEP $1 SUBSEP resolved_path
+          }
+        else {
+            line_array[NR] = $0  # Store other lines too, with an empty path
+        }
     }
 
     else {
@@ -187,22 +187,22 @@ END {
         for (i = 1; i <= NR; i++) {
             line = line_array[i]
             if (index(line, SUBSEP) > 0) {  # Check if this path was a symlink
-	        split(line, fields, SUBSEP)
-		original_line = fields[1]
-		field0 = fields[2]
-		resolved_path = fields[3]
-		if (resolved_path in symlink_map) {
+                split(line, fields, SUBSEP)
+                original_line = fields[1]
+                field0 = fields[2]
+                resolved_path = fields[3]
+                if (resolved_path in symlink_map) {
                    mapped_link = symlink_map[resolved_path]
 
-		   linked_to = make_relative_link(mapped_link, field0)
-	        }
-		else {
+                   linked_to = make_relative_link(mapped_link, field0)
+                }
+                else {
                   # Already a relative path
-		   linked_to = resolved_path
-	        }
+                   linked_to = resolved_path
+                }
                 # Adjust the line for symlink using the map we created
-		sub(/type=[^ ]+/, "type=link", original_line)
-		sub(/content=[^ ]+/, "link=" linked_to, original_line)
+                sub(/type=[^ ]+/, "type=link", original_line)
+                sub(/content=[^ ]+/, "link=" linked_to, original_line)
                 print original_line
 
             } else {
