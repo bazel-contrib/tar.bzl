@@ -3,7 +3,7 @@
 load("@aspect_bazel_lib//lib:paths.bzl", "to_repository_relative_path")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
-TAR_TOOLCHAIN_TYPE = "//tar/toolchain:type"
+TAR_TOOLCHAIN_TYPE = "@tar.bzl//tar/toolchain:type"
 
 # https://www.gnu.org/software/tar/manual/html_section/Compression.html
 _ACCEPTED_EXTENSIONS = [
@@ -342,7 +342,7 @@ def _repo_mapping_manifest(files_to_run):
     return getattr(files_to_run, "repo_mapping_manifest", None)
 
 def _tar_impl(ctx):
-    bsdtar = ctx.toolchains[TAR_TOOLCHAIN_TYPE]
+    bsdtar = ctx.toolchains["@tar.bzl//tar/toolchain:type"]
     inputs = ctx.files.srcs[:]
     args = ctx.actions.args()
 
@@ -399,7 +399,7 @@ def _tar_impl(ctx):
         arguments = [args],
         mnemonic = "Tar",
         unused_inputs_list = unused_inputs_file,
-        toolchain = TAR_TOOLCHAIN_TYPE,
+        toolchain = "@tar.bzl//tar/toolchain:type",
     )
 
     # TODO(3.0): Always return a list of providers.
@@ -622,7 +622,7 @@ tar_lib = struct(
     implementation = _tar_impl,
     mtree_attrs = _mtree_attrs,
     mtree_implementation = _mtree_impl,
-    toolchain_type = TAR_TOOLCHAIN_TYPE,
+    toolchain_type = "@tar.bzl//tar/toolchain:type",
     common = struct(
         accepted_tar_extensions = _ACCEPTED_EXTENSIONS,
         accepted_compression_types = _ACCEPTED_COMPRESSION_TYPES,
