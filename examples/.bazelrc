@@ -1,2 +1,4 @@
-test --test_output=errors
+import %workspace%/../tools/preset.bazelrc
+
+# also see: https://blog.aspect.build/configuring-bazels-downloader
 common --experimental_downloader_config=../tools/downloader.cfg
