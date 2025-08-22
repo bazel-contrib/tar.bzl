@@ -10,3 +10,6 @@ common --check_direct_dependencies=off
 
 # Make source directories hermetic.
 startup --host_jvm_args=-DBAZEL_TRACK_SOURCE_DIRECTORIES=1
+
+# CI should never be updating the lockfile (if so, that means someone forgot to check it in)
+common:ci --lockfile_mode=error
