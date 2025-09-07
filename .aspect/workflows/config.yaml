@@ -14,6 +14,11 @@ bazel:
     - --config=ci
 tasks:
   - test:
+      name: "Test (Bazel 6.x)"
+      id: bazel-6
+      env:
+        USE_BAZEL_VERSION: 6.x
+  - test:
       name: "Test (Bazel 7.x)"
       id: bazel-7
       env:
