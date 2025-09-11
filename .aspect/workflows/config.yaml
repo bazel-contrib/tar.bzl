@@ -1,18 +1,34 @@
 # See https://docs.aspect.build/workflows/configuration
 workspaces:
-  - .
+  - .:
+      tasks:
+        - workspace:
+            without: true
   - docs:
       tasks:
+        - workspace:
+            without: true
         - bazel-7:
             without: true
         - bazel-9:
             without: true
   - e2e/smoke
-  - examples
+  - examples:
+      tasks:
+        - workspace:
+            without: true
 bazel:
   flags:
     - --config=ci
 tasks:
+  - test:
+      name: "Test (WORKSPACE)"
+      id: workspace
+      env:
+        USE_BAZEL_VERSION: 7.x
+      bazel:
+        flags:
+          - --noenable_bzlmod
   - test:
       name: "Test (Bazel 7.x)"
       id: bazel-7
