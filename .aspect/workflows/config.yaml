@@ -13,7 +13,10 @@ workspaces:
         - bazel-9:
             without: true
   - e2e/smoke
-  - examples
+  - examples:
+      tasks:
+        - bazel-6:
+            without: true
 bazel:
   flags:
     - --config=ci
