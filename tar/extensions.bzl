@@ -3,10 +3,13 @@
 load("//tar/toolchain:platforms.bzl", "BSDTAR_PLATFORMS", "bsdtar_binary_repo")
 load("//tar/toolchain:toolchain.bzl", "tar_toolchains_repo")
 
-def _toolchains_extension(mctx):
-    tar_toolchains_repo(name = "bsd_tar_toolchains", user_repository_name = "bsd_tar_toolchains")
+def create_repositories(name = "bsd_tar_toolchains"):
+    tar_toolchains_repo(name = name, user_repository_name = name)
     for platform in BSDTAR_PLATFORMS.keys():
         bsdtar_binary_repo(name = "{}_{}".format("bsd_tar_toolchains", platform), platform = platform)
+
+def _toolchains_extension(mctx):
+    create_repositories()
     return mctx.extension_metadata(reproducible = True)
 
 toolchains = module_extension(
