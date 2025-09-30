@@ -1,5 +1,36 @@
 """
 API for calling tar, see https://man.freebsd.org/cgi/man.cgi?tar(1)
+
+Load from:
+
+```starlark
+load("@tar.bzl", "tar")
+```
+
+Examples
+--------
+
+Build this target to produce archive.tar:
+```starlark
+tar(
+    name = "archive",
+    srcs = ["my-file.txt"],
+)
+```
+
+Mutations allow modification of the archive's structure. For example to strip the package name:
+
+```starlark
+load("@tar.bzl", "mutate", "tar")
+
+tar(
+    name = "new",
+    srcs = ["my-file.txt"],
+    # See arguments documented at
+    # https://github.com/bazel-contrib/tar.bzl/blob/main/docs/mtree.md#mtree_mutate
+    mutate = mutate(strip_prefix = package_name()),
+)
+```
 """
 
 load("@aspect_bazel_lib//lib:expand_template.bzl", "expand_template")
