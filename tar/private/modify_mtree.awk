@@ -97,7 +97,37 @@ function make_relative_link(path1, path2, i, common, target, relative_path, back
     if (groupname != "") {
         sub(/gname=[^ ]+/, "gname=" groupname)
     }
+    if (remap_paths != "") {
+        # Parse the remap_paths and apply remapping to the current path
+        # remap_paths is passed as a string like "tar/tests=var/www,other/path=new/path"
+        # We need to extract key-value pairs and apply them to $1 (the path)
 
+        # Split by comma to get individual key=value pairs
+        split(remap_paths, pairs, ",")
+
+        for (i = 1; i <= length(pairs); i++) {
+            # Clean up the pair and split by equals sign
+            gsub(/^[ \t]*|[ \t]*$/, "", pairs[i])  # trim whitespace
+
+            # Find the equals sign that separates key from value
+            equals_pos = index(pairs[i], "=")
+            if (equals_pos > 0) {
+                key = substr(pairs[i], 1, equals_pos - 1)
+                value = substr(pairs[i], equals_pos + 1)
+
+                # Clean up key and value - trim whitespace
+                gsub(/^[ \t]*|[ \t]*$/, "", key)
+                gsub(/^[ \t]*|[ \t]*$/, "", value)
+
+                # Apply remapping if the current path starts with the key
+                if (index($1, key) == 1) {
+                    # Replace the matching prefix with the new value
+                    sub("^" key, value, $1)
+                    break  # Only apply the first matching remap
+                }
+            }
+        }
+    }
     if (package_dir != "") {
         # First ensure parent directories exist
         if (!($0 ~ /type=dir/)) {

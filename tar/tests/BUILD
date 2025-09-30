@@ -736,3 +736,41 @@ assert_tar_listing(
         "-rwxr-xr-x  0 0      0           7 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/nested/file",
     ],
 )
+
+#############
+# Example 20: Test remap_paths functionality
+_SRCS20 = [
+    ":fixture1",
+    "src_file",
+]
+
+mtree_spec(
+    name = "mtree20",
+    srcs = _SRCS20,
+)
+
+mtree_mutate(
+    name = "remap_paths",
+    mtree = "mtree20",
+    remap_paths = {
+        "tar/tests": "var/www",
+    },
+)
+
+tar(
+    name = "tar_remap_paths",
+    srcs = _SRCS20,
+    out = "20.tar",
+    mtree = "remap_paths",
+)
+
+assert_tar_listing(
+    name = "test20_remap_paths",
+    actual = "tar_remap_paths",
+    expected = [
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 var/www/",
+        "-rwxr-xr-x  0 0      0           7 Jan  1  2023 var/www/generated.txt",
+        "-rwxr-xr-x  0 0      0          21 Jan  1  2023 var/www/src_file",
+    ],
+)

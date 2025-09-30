@@ -4,7 +4,10 @@ load("@tar.bzl//tar/tests:asserts.bzl", "assert_tars_match")
 
 filegroup(
     name = "static",
-    srcs = ["index.html"],
+    srcs = [
+        "index.html",
+        "subdir/a",
+    ],
 )
 
 DEFAULT_MUTATIONS = mutate(
@@ -19,6 +22,7 @@ pkg_tar(
     name = "old1",
     srcs = [":static"],
     mode = "0755",
+    strip_prefix = ".",
 )
 
 # -> change to ->
@@ -34,6 +38,7 @@ pkg_tar(
     srcs = [":static"],
     mode = "0755",
     package_dir = "/usr/share/nginx/html",
+    strip_prefix = ".",
 )
 
 # -> change to ->
@@ -54,6 +59,7 @@ pkg_tar(
     compressor = "@pigz",
     compressor_args = "-n",
     mode = "0755",
+    strip_prefix = ".",
 )
 
 # -> change to ->
@@ -65,6 +71,26 @@ tar(
     mutate = DEFAULT_MUTATIONS,
 )
 
+########### remap_paths ################
+pkg_tar(
+    name = "old4",
+    srcs = [":static"],
+    mode = "0755",
+    remap_paths = {"/subdir": "/var/www"},
+    strip_prefix = ".",
+)
+
+# -> change to ->
+tar(
+    name = "new4",
+    srcs = [":static"],
+    mutate = mutate(
+        mtime = 946699200,
+        remap_paths = {"/subdir": "/var/www"},
+        strip_prefix = package_name(),
+    ),
+)
+
 ########## TEST #################
 [
     assert_tars_match(
@@ -72,5 +98,5 @@ tar(
         actual = "new%s" % i,
         expected = "old%s" % i,
     )
-    for i in range(1, 4)
+    for i in range(1, 5)
 ]
