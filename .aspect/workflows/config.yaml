@@ -4,14 +4,6 @@ workspaces:
       tasks:
         - workspace:
             without: true
-  - docs:
-      tasks:
-        - workspace:
-            without: true
-        - bazel-7:
-            without: true
-        - bazel-9:
-            without: true
   - e2e/smoke
   - examples:
       tasks:

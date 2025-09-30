@@ -1,12 +1,6 @@
 load("@aspect_bazel_lib//:bzl_library.bzl", "bzl_library")
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 
-# For stardoc to reference the files
-exports_files([
-    "mtree.bzl",
-    "tar.bzl",
-])
-
 bool_flag(
     name = "tar_compute_unused_inputs",
     # TODO(1.0): change default to True, but without a breaking change to bazel-lib

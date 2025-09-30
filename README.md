@@ -21,33 +21,6 @@ Thanks to all the contributors who made it possible!
 
 ## Examples
 
-Simplest possible usage:
-
-```starlark
-load("@tar.bzl", "tar")
-
-# build this target to produce archive.tar
-tar(
-    name = "archive",
-    srcs = ["my-file.txt"],
-)
-```
-
-Mutations allow modification of the archive's structure. For example to strip the package name:
-
-```starlark
-load("@tar.bzl", "mutate", "tar")
-
-tar(
-    name = "new",
-    srcs = ["my-file.txt"],
-    # See arguments documented at
-    # https://github.com/bazel-contrib/tar.bzl/blob/main/docs/mtree.md#mtree_mutate
-    mutate = mutate(strip_prefix = package_name()),
-)
-```
-
-Other examples:
 - Migrate from `pkg_tar`: https://github.com/bazel-contrib/tar.bzl/blob/main/examples/migrate-rules_pkg/BUILD
 - Look through our test suite: https://github.com/bazel-contrib/tar.bzl/blob/main/tar/tests/BUILD
 
@@ -56,8 +29,8 @@ See https://registry.bazel.build/modules/rules_tar for this.
 
 ## API docs
 
-- [tar](docs/tar.md) Run BSD `tar(1)` to produce archives
-- [mtree](docs/mtree.md) The intermediate manifest format `mtree(8)` describing a tar operation
+- [tar](https://registry.bazel.build/modules/tar.bzl#-tar-bzl) Run BSD `tar(1)` to produce archives
+- [mtree](https://registry.bazel.build/modules/tar.bzl#tar-mtree-bzl) The intermediate manifest format `mtree(8)` describing a tar operation
 
 ## Design notes
 

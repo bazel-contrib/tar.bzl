@@ -1,17 +1,6 @@
-load("@aspect_bazel_lib//:bzl_library.bzl", "bzl_library")
 load("@aspect_bazel_lib//lib:diff_test.bzl", "diff_test")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
 load("//tar:mtree.bzl", "mtree_spec")
-
-bzl_library(
-    name = "tar",
-    srcs = ["tar.bzl"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//tar",
-        "//tar:mtree",
-    ],
-)
 
 # Test case for mtree_spec: Ensure that multiple entries at the root directory are handled correctly (bug #851)
 # See lib/tests/tar/BUILD.bazel for why this is here.
