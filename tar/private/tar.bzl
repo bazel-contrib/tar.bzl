@@ -187,6 +187,9 @@ _mutate_mtree_attrs = {
     "groupname": attr.string(
         doc = "Specifies the name of the group of the files in the tar archive. Used alongside 'group'.",
     ),
+    "remap_paths": attr.string_dict(
+        doc = "A dictionary mapping source paths to target paths for remapping in the tar file.",
+    ),
     "out": attr.output(
         doc = "The output of the mutation, a new mtree file.",
     ),
@@ -592,6 +595,13 @@ def _mtree_mutate_impl(ctx):
         assignments["groupname"] = ctx.attr.groupname
     if ctx.attr.strip_prefix:
         assignments["strip_prefix"] = ctx.attr.strip_prefix
+    if ctx.attr.remap_paths:
+        # Pass remap_paths as a simple format that AWK can parse
+        # Format: "key1=value1,key2=value2"
+        remap_pairs = []
+        for key, value in ctx.attr.remap_paths.items():
+            remap_pairs.append("%s=%s" % (key, value))
+        assignments["remap_paths"] = ",".join(remap_pairs)
     if ctx.attr.package_dir:
         assignments["package_dir"] = ctx.attr.package_dir.lstrip("/")
     if ctx.attr.mtime:

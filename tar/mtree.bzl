@@ -46,6 +46,7 @@ def mtree_mutate(
         srcs = None,
         preserve_symlinks = False,
         strip_prefix = None,
+        remap_paths = None,
         package_dir = None,
         mtime = None,
         owner = None,
@@ -60,6 +61,7 @@ def mtree_mutate(
         srcs: list of files to resolve symlinks for.
         preserve_symlinks: `EXPERIMENTAL!` We may remove or change it at any point without further notice. Flag to determine whether to preserve symlinks in the tar.
         strip_prefix: prefix to remove from all paths in the tar. Files and directories not under this prefix are dropped.
+        remap_paths: map of paths to remap in the tar.
         package_dir: directory prefix to add to all paths in the tar.
         mtime: new modification time for all entries.
         owner: new uid for all entries.
@@ -79,6 +81,7 @@ def mtree_mutate(
         srcs = srcs,
         preserve_symlinks = preserve_symlinks,
         strip_prefix = strip_prefix,
+        remap_paths = remap_paths,
         package_dir = package_dir,
         mtime = str(mtime) if mtime else None,
         owner = owner,
