@@ -46,6 +46,33 @@ assert_archive_contains(
     ],
 )
 
+# Test that resolved_target_toolchain works similarly to resolved_toolchain.
+# This demonstrates target-platform-based toolchain resolution.
+genrule(
+    name = "tar_genrule_target_toolchain",
+    srcs = [
+        ":fixture1",
+        "src_file",
+    ],
+    outs = ["1_target.tar"],
+    cmd = "$(BSDTAR_BIN) --create --dereference --file $@ -s '#$(BINDIR)##' $(execpath :fixture1) $(execpath src_file)",
+    target_compatible_with = select({
+        # bsdtar.exe: -s is not supported by this version of bsdtar
+        "@platforms//os:windows": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+    toolchains = ["@bsd_tar_toolchains//:resolved_target_toolchain"],
+)
+
+assert_archive_contains(
+    name = "test_genrule_target_toolchain",
+    archive = "1_target.tar",
+    expected = [
+        "tar/tests/generated.txt",
+        "tar/tests/src_file",
+    ],
+)
+
 #############
 # Example 2: exact control of the resulting tar file, using a custom specification in the "mtree" format.
 # Copied from the output of `man tar`:
