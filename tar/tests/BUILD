@@ -763,3 +763,36 @@ assert_tar_listing(
         "-rwxr-xr-x  0 0      0           7 Jan  1  2023 tar/tests/runfiles_root_symlinks.runfiles/nested/file",
     ],
 )
+
+#############
+# Example 20: Test custom compressor without compressor_args (fixes None issue)
+# Create a simple mock compressor for testing
+sh_binary(
+    name = "mock_compressor",
+    srcs = ["mock_compressor.sh"],
+)
+
+write_file(
+    name = "mock_compressor_sh",
+    out = "mock_compressor.sh",
+    content = [
+        "#!/bin/bash",
+        "# Mock compressor that just passes through data",
+        "cat",
+    ],
+)
+
+tar(
+    name = "tar_custom_compressor_no_args",
+    srcs = ["generated.txt"],
+    out = "20.tgz",
+    compressor = ":mock_compressor",
+    # Note: compressor_args is not specified, should default to None and not cause "None" in command
+)
+
+assert_archive_contains(
+    name = "test20_custom_compressor_no_args",
+    archive = "20.tgz",
+    expected = ["tar/tests/generated.txt"],
+    type = "tar",
+)
