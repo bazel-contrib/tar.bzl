@@ -362,10 +362,7 @@ def _tar_impl(ctx):
 
     # Compression args
     if ctx.executable.compressor:
-        compressor_cmd = ctx.executable.compressor.path
-        if ctx.attr.compressor_args:
-            compressor_cmd += " " + ctx.attr.compressor_args
-        args.add("--use-compress-program", compressor_cmd)
+        args.add_joined("--use-compress-program", [ctx.executable.compressor.path, ctx.attr.compressor_args], join_with = " ")
     else:
         _add_compression_args(ctx.attr.compress, args)
 
