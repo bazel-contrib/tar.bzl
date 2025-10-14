@@ -29,8 +29,8 @@ See https://registry.bazel.build/modules/rules_tar for this.
 
 ## API docs
 
-- [tar](https://registry.bazel.build/modules/tar.bzl#tar-tar-bzl) Run BSD `tar(1)` to produce archives
-- [mtree](https://registry.bazel.build/modules/tar.bzl#tar-mtree-bzl) The intermediate manifest format `mtree(8)` describing a tar operation
+- [tar](https://registry.bazel.build/docs/tar.bzl#tar-tar-bzl) Run BSD `tar(1)` to produce archives
+- [mtree](https://registry.bazel.build/docs/tar.bzl#tar-mtree-bzl) The intermediate manifest format `mtree(8)` describing a tar operation
 
 ## Design notes
 
