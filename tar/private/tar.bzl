@@ -604,14 +604,41 @@ def _mtree_mutate_impl(ctx):
         assignments["mtime"] = ctx.attr.mtime
     if ctx.attr.preserve_symlinks:
         assignments["preserve_symlinks"] = 1
+
+    inputs = ctx.files.srcs[:]
+    inputs.append(ctx.file.mtree)
+    inputs.append(ctx.file.awk_script)
+
+    # Create symlink list file if preserve_symlinks is enabled
+    if ctx.attr.preserve_symlinks:
+        symlink_list_file = ctx.actions.declare_file(ctx.attr.name + ".declared_symlinks")
+
+        # Use File.is_symlink API (Bazel 8+) to detect DANGLING symlinks
+        # Note: File.is_symlink is only True for files created with ctx.actions.declare_symlink()
+        # Symlinks created with ctx.actions.symlink(target_file=...) do NOT have is_symlink=True
+        # So we still need to call readlink for other files, but we can skip files we know are symlinks
+        all_files = depset(direct = ctx.files.srcs, transitive = srcs_runfiles).to_list()
+        known_symlink_paths = []
+
+        for file in all_files:
+            if hasattr(file, "is_symlink") and file.is_symlink:
+                if file.path not in known_symlink_paths:
+                    known_symlink_paths.append(file.path)
+
+        # Write list of known symlink paths for AWK to use (to avoid calling readlink on these)
+        ctx.actions.write(
+            output = symlink_list_file,
+            content = "\n".join(known_symlink_paths),
+        )
+
+        inputs.append(symlink_list_file)
+        assignments["symlink_list"] = symlink_list_file.path
+
     for (key, value) in assignments.items():
         args.add_joined(["--assign", key, value], join_with = "=")
     args.add_joined(["--file", ctx.file.awk_script], join_with = "=")
     args.add(ctx.file.mtree)
 
-    inputs = ctx.files.srcs[:]
-    inputs.append(ctx.file.mtree)
-    inputs.append(ctx.file.awk_script)
     ctx.actions.run_shell(
         command = """
         {awk} $@ | sort > {out_mtree}
