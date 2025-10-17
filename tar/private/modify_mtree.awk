@@ -1,4 +1,16 @@
 # Edits mtree files. See the modify_mtree macro in /lib/tar.bzl.
+BEGIN {
+    # Read the declared_symlinks file if it exists
+    if (symlink_list != "") {
+        while ((getline line < symlink_list) > 0) {
+            if (line != "") {
+                declared_symlinks[line] = 1
+            }
+        }
+        close(symlink_list)
+    }
+}
+
 function common_sections(path1, path2, i, segments1, segments2, min_length, common_path) {
     # Normalize paths (remove leading/trailing slashes)
     gsub(/^\/|\/$/, "", path1)
@@ -140,29 +152,20 @@ function make_relative_link(path1, path2, i, common, target, relative_path, back
             path = parts[2]
             # Store paths for look up
             symlink_map[path] = $1
-            # Resolve the symlink if it exists
-            resolved_path = ""
-            cmd = "readlink -f \"" path "\""
-            cmd | getline resolved_path
-            close(cmd)
-            # If readlink -f fails use readlink for relative links
-            if (resolved_path == "") {
+
+            # Check if this path is in the declared_symlinks list
+            if (path in declared_symlinks) {
+                # For declared symlinks, only call readlink once (not readlink -f)
+                # This gives us the direct target without resolving intermediate symlinks
+                resolved_path = ""
                 cmd = "readlink \"" path "\""
                 cmd | getline resolved_path
                 close(cmd)
-            }
 
-
-            if (resolved_path) {
-                if (resolved_path ~ bin_dir || resolved_path ~ /\.\.\//) {
-                    # Strip down the resolved path to start from bin_dir
-                    sub("^.*" bin_dir, bin_dir, resolved_path)
-                    # If the resolved path is different from the original path,
-                    # or if it's a relative path
-                    if (path != resolved_path || resolved_path ~ /\.\.\//) {
-                        symlink = resolved_path
-                        symlink_content = path
-                    }
+                # Use the result directly - declared symlinks should preserve their target as-is
+                if (resolved_path != "") {
+                    symlink = resolved_path
+                    symlink_content = path
                 }
             }
         }
