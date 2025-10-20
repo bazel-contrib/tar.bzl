@@ -167,6 +167,30 @@ function make_relative_link(path1, path2, i, common, target, relative_path, back
                     symlink = resolved_path
                     symlink_content = path
                 }
+            } else {
+                # For non-declared symlinks, resolve the symlink if it exists
+                resolved_path = ""
+                cmd = "readlink -f \"" path "\""
+                cmd | getline resolved_path
+                close(cmd)
+                # If readlink -f fails use readlink for relative links
+                if (resolved_path == "") {
+                    cmd = "readlink \"" path "\""
+                    cmd | getline resolved_path
+                    close(cmd)
+                }
+                if (resolved_path) {
+                    if (resolved_path ~ bin_dir || resolved_path ~ /\.\.\//) {
+                        # Strip down the resolved path to start from bin_dir
+                        sub("^.*" bin_dir, bin_dir, resolved_path)
+                        # If the resolved path is different from the original path,
+                        # or if it's a relative path
+                        if (path != resolved_path || resolved_path ~ /\.\.\//) {
+                            symlink = resolved_path
+                            symlink_content = path
+                        }
+                    }
+                }
             }
         }
         if (symlink != "") {
