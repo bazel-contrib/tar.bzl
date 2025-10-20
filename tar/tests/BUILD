@@ -9,6 +9,7 @@ load(":asserts.bzl", "assert_tar_listing", "assert_unused_listing")
 load(":directory.bzl", "directory")
 load(":node_modules_tree.bzl", "node_modules_tree")
 load(":runfiles_symlinks.bzl", "runfiles_symlinks")
+load(":dangling_symlink.bzl", "dangling_symlink")
 
 # The examples below work with both source files and generated files.
 # Here we generate a file to use in the examples.
@@ -795,4 +796,30 @@ assert_archive_contains(
     archive = "20.tgz",
     expected = ["tar/tests/generated.txt"],
     type = "tar",
+)
+
+#############
+# Example 21: Test dangling symlinks in are preserved in mtree
+dangling_symlink(name = "dangling_symlink")
+
+mtree_spec(
+    name = "mtree_dangling_symlink",
+    srcs = [":dangling_symlink"],
+)
+
+mtree_mutate(
+    name = "dangling_symlink_preserved",
+    srcs = [":dangling_symlink"],
+    mtree = ":mtree_dangling_symlink",
+    preserve_symlinks = True,
+)
+
+assert_tar_listing(
+    name = "test_dangling_symlink_preserved",
+    actual = ":dangling_symlink_preserved",
+    expected = [
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/",
+        "lrwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/dangling_symlink -> ../non_existent_target",
+    ],
 )
