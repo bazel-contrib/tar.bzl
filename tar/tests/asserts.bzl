@@ -1,7 +1,7 @@
 "Make shorter assertions"
 
-load("@bazel_lib//lib:diff_test.bzl", "diff_test")
 load("@bazel_features//:features.bzl", "bazel_features")
+load("@bazel_lib//lib:diff_test.bzl", "diff_test")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
 
 # buildifier: disable=function-docstring

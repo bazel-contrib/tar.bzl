@@ -91,7 +91,7 @@ def tar(name, mtree = "auto", mutate = None, include_runfiles = None, stamp = 0,
 
     if include_runfiles != None and mtree != "auto":
         fail("include_runfiles is only supported when mtree is 'auto', otherwise include_runfiles should be set in mtree_spec")
-
+    print(type(mtree), mtree)
     if mtree == "auto":
         if include_runfiles == None:
             include_runfiles = True
