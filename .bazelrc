@@ -1,6 +1,3 @@
 import %workspace%/tools/preset.bazelrc
 
 common --config=ruleset
-
-# also see: https://blog.aspect.build/configuring-bazels-downloader
-common --experimental_downloader_config=tools/downloader.cfg
