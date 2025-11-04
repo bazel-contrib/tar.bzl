@@ -608,7 +608,7 @@ def _mtree_mutate_impl(ctx):
     inputs.append(ctx.file.awk_script)
     ctx.actions.run_shell(
         command = """
-        {awk} $@ > {out_mtree}
+        {awk} $@ | sort > {out_mtree}
         """.format(
             awk = ctx.executable._awk.path,
             out_mtree = out_mtree.path,
