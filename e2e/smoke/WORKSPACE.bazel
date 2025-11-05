@@ -65,15 +65,11 @@ create_repositories()
 
 register_toolchains("@bsd_tar_toolchains//:all")
 
-load("@aspect_bazel_lib//lib:repositories.bzl", "aspect_bazel_lib_dependencies", "aspect_bazel_lib_register_toolchains")
+load("@bazel_lib//lib:repositories.bzl", "bazel_lib_dependencies", "bazel_lib_register_toolchains")
 
-# Required bazel-lib dependencies
+bazel_lib_dependencies()
 
-aspect_bazel_lib_dependencies()
-
-# Register bazel-lib toolchains
-
-aspect_bazel_lib_register_toolchains()
+bazel_lib_register_toolchains()
 
 load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
 load("@platforms//host:extension.bzl", "host_platform_repo")
