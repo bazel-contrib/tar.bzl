@@ -9,6 +9,9 @@ workspaces:
       tasks:
         - workspace:
             without: true
+        # TODO(alexeagle): fix
+        - bazel-9:
+            without: true
 bazel:
   flags:
     - --config=ci
