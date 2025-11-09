@@ -37,7 +37,7 @@ Use a snippet like the following in `.bazelrc`:
 ```
 # Avoid overloading the remote cache with tar outputs.
 # See https://github.com/bazel-contrib/tar.bzl/blob/main/README.md#remote-cache-and-rbe
-common --execution_requirements=Tar=+no-remote-cache
+common --modify_execution_info=Tar=+no-remote-cache
 ```
 
 ## Examples
