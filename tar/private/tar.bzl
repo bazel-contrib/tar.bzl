@@ -38,8 +38,10 @@ _COMPRESSION_TO_EXTENSION = {
     "zstd": ".tar.zst",
 }
 
+_NO_COMPRESSION = ""
+
 # https://www.gnu.org/software/tar/manual/html_section/Compression.html
-_ACCEPTED_COMPRESSION_TYPES = _COMPRESSION_TO_EXTENSION.keys()
+_ACCEPTED_COMPRESSION_TYPES = _COMPRESSION_TO_EXTENSION.keys() + [_NO_COMPRESSION]
 
 _tar_attrs = {
     "args": attr.string_list(
