@@ -31,6 +31,31 @@ tar(
     mutate = mutate(strip_prefix = package_name()),
 )
 ```
+
+Compression is supported. Of course it takes additional time and resources, so you can turn it off:
+
+```starlark
+tar(
+    name = "just_archive",
+    compress = None,
+    ...
+)
+```
+
+Normally if your tar file is small, you can keep using the built-in gzip, but if your tar file is large, over 1GB, parallel `pigz` will greatly improve the performance.
+
+1. Add `pigz` in `MODULE.bazel`: https://registry.bazel.build/modules/pigz
+2. Use the new tar compressor atrribute in your BUILD file, eg:
+
+```starlark
+tar(
+    name = "my_tar_file",
+    compress = "gzip",
+    compressor = "@pigz",
+    compressor_args = "-n",
+    ...
+)
+```
 """
 
 load("@bazel_lib//lib:expand_template.bzl", "expand_template")
