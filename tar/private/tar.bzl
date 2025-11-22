@@ -83,7 +83,12 @@ _tar_attrs = {
         doc = "Resulting tar file to write. If absent, `[name].tar` is written.",
     ),
     "compress": attr.string(
-        doc = "Compress the archive file with a supported algorithm.",
+        doc = """\
+        Compress the archive file with a supported algorithm.
+
+        Default is `compress = ""` means no compression.
+        Use `compress = None` to disable compression explicitly.
+        """,
         values = _ACCEPTED_COMPRESSION_TYPES,
     ),
     "compressor": attr.label(
