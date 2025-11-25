@@ -31,6 +31,23 @@ tar(
     mutate = mutate(strip_prefix = package_name()),
 )
 ```
+
+Exclude specific files from the archive, such as duplicate binaries in runfiles:
+
+```starlark
+load("@tar.bzl", "mutate", "tar")
+
+tar(
+    name = "my_app_tar",
+    srcs = [":my_binary"],
+    include_runfiles = True,
+    mutate = mutate(
+        excludes = [
+            "my_binary.runfiles/_main/my_binary",  # Remove duplicate binary
+        ],
+    ),
+)
+```
 """
 
 load("@bazel_lib//lib:expand_template.bzl", "expand_template")
