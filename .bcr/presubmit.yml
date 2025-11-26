@@ -3,7 +3,7 @@ bcr_test_module:
   matrix:
     # TODO(alex): add windows.
     # bazel-lib was only testing e2e/smoke on windows, which is missing tar coverage
-    platform: ["debian10", "macos", "ubuntu2004"]
+    platform: ["debian11", "macos", "ubuntu2204"]
     bazel: ["rolling", "8.x", "7.x"]
   tasks:
     run_tests:
