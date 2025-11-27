@@ -44,7 +44,22 @@ function make_relative_link(path1, path2, i, common, target, relative_path, back
     return back_steps target
 }
 
+BEGIN {
+    # Pre-process excludes into an associative array for O(1) lookup
+    if (excludes != "") {
+        split(excludes, exclude_list, "\036")
+        for (i in exclude_list) {
+            exclude_map[exclude_list[i]] = 1
+        }
+    }
+}
+
 {
+    # Handle excludes - check if the current path should be excluded
+    if ($1 in exclude_map) {
+        next
+    }
+
     if (strip_prefix != "") {
         if ($1 == strip_prefix) {
             # this line declares the directory which is now the root. It may be discarded.

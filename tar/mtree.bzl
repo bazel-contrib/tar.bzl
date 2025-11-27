@@ -50,6 +50,7 @@ def mtree_mutate(
         mtime = None,
         owner = None,
         ownername = None,
+        excludes = None,
         awk_script = Label("@tar.bzl//tar/private:modify_mtree.awk"),
         **kwargs):
     """Modify metadata in an mtree file.
@@ -64,6 +65,7 @@ def mtree_mutate(
         mtime: new modification time for all entries.
         owner: new uid for all entries.
         ownername: new uname for all entries.
+        excludes: list of paths to exclude from the tar. Paths are matched exactly against the original paths before any strip_prefix or package_dir transformations are applied.
         awk_script: may be overridden to change the script containing the modification logic.
         **kwargs: additional named parameters to genrule
     """
@@ -83,6 +85,7 @@ def mtree_mutate(
         mtime = str(mtime) if mtime else None,
         owner = owner,
         ownername = ownername,
+        excludes = excludes,
         awk_script = awk_script,
         out = "{}.mtree".format(name),
         **kwargs

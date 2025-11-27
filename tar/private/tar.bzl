@@ -192,6 +192,9 @@ _mutate_mtree_attrs = {
     "groupname": attr.string(
         doc = "Specifies the name of the group of the files in the tar archive. Used alongside 'group'.",
     ),
+    "excludes": attr.string_list(
+        doc = "List of paths to exclude from the tar archive. Paths are matched exactly against the original paths before any strip_prefix or package_dir transformations are applied.",
+    ),
     "out": attr.output(
         doc = "The output of the mutation, a new mtree file.",
     ),
@@ -603,6 +606,10 @@ def _mtree_mutate_impl(ctx):
         assignments["mtime"] = ctx.attr.mtime
     if ctx.attr.preserve_symlinks:
         assignments["preserve_symlinks"] = 1
+    if ctx.attr.excludes:
+        # Pass excludes as a delimited string for AWK to parse
+        # Use ASCII 0x1E (record separator) as delimiter to avoid conflicts with paths
+        assignments["excludes"] = "\036".join(ctx.attr.excludes)
     for (key, value) in assignments.items():
         args.add_joined(["--assign", key, value], join_with = "=")
     args.add_joined(["--file", ctx.file.awk_script], join_with = "=")
