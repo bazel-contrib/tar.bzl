@@ -10,8 +10,8 @@ load("@tar.bzl", "tar")
 Examples
 --------
 
-Build this target to produce archive.tar:
 ```starlark
+# Build this target to produce archive.tar:
 tar(
     name = "archive",
     srcs = ["my-file.txt"],
@@ -32,12 +32,13 @@ tar(
 )
 ```
 
-Compression is supported. Of course it takes additional time and resources, so you can turn it off:
+Compression is supported. Of course it takes additional time and resources.
 
 ```starlark
+# Build this target to produce archive.tar.gz:
 tar(
-    name = "just_archive",
-    compress = None,
+    name = "my_archive",
+    compress = "gzip",
     ...
 )
 ```
@@ -50,7 +51,6 @@ Normally if your tar file is small, you can keep using the built-in gzip, but if
 ```starlark
 tar(
     name = "my_tar_file",
-    compress = "gzip",
     compressor = "@pigz",
     compressor_args = "-n",
     ...
