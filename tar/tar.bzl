@@ -44,7 +44,7 @@ tar(
 
 Normally if your tar file is small, you can keep using the built-in gzip, but if your tar file is large, over 1GB, parallel `pigz` will greatly improve the performance.
 
-1. Add `pigz` in `MODULE.bazel`: https://registry.bazel.build/modules/pigz
+1. Add `pigz` in `MODULE.bazel`; see https://registry.bazel.build/modules/pigz
 2. Use the new tar compressor atrribute in your BUILD file, eg:
 
 ```starlark
