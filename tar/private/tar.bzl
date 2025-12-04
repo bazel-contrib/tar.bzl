@@ -27,6 +27,7 @@ _ACCEPTED_EXTENSIONS = [
 ]
 
 _COMPRESSION_TO_EXTENSION = {
+    "": ".tar",
     "bzip2": ".tar.bz2",
     "compress": ".tar.Z",
     "gzip": ".tar.gz",
@@ -86,9 +87,9 @@ _tar_attrs = {
         doc = """\
         Compress the archive file with a supported algorithm.
 
-        Default is `compress = ""` means no compression.
-        Use `compress = None` to disable compression explicitly.
+        Default is `""` which means no compression.
         """,
+        default = "",
         values = _ACCEPTED_COMPRESSION_TYPES,
     ),
     "compressor": attr.label(
@@ -371,7 +372,7 @@ def _tar_impl(ctx):
     else:
         _add_compression_args(ctx.attr.compress, args)
 
-    ext = _COMPRESSION_TO_EXTENSION[ctx.attr.compress] if ctx.attr.compress else ".tar"
+    ext = _COMPRESSION_TO_EXTENSION[ctx.attr.compress]
 
     out = ctx.outputs.out or ctx.actions.declare_file(ctx.attr.name + ext)
     args.add("--file", out)

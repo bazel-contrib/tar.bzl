@@ -130,5 +130,6 @@ def tar(name, mtree = "auto", mutate = None, include_runfiles = None, stamp = 0,
     tar_rule(
         name = name,
         mtree = mtree_target,
+        compress = kwargs.pop("compress", select({Label(":compilation_mode.opt"): "gzip", "//conditions:default": None})),
         **kwargs
     )

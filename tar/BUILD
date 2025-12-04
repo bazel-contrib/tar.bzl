@@ -8,6 +8,11 @@ bool_flag(
     visibility = ["//visibility:public"],
 )
 
+config_setting(
+    name = "compilation_mode.opt",
+    values = {"compilation_mode": "opt"},
+)
+
 bzl_library(
     name = "mtree",
     srcs = ["mtree.bzl"],
