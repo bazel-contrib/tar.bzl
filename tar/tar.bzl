@@ -10,8 +10,8 @@ load("@tar.bzl", "tar")
 Examples
 --------
 
-Build this target to produce archive.tar:
 ```starlark
+# Build this target to produce archive.tar:
 tar(
     name = "archive",
     srcs = ["my-file.txt"],
@@ -29,6 +29,31 @@ tar(
     # See arguments documented at
     # https://github.com/bazel-contrib/tar.bzl/blob/main/docs/mtree.md#mtree_mutate
     mutate = mutate(strip_prefix = package_name()),
+)
+```
+
+Compression is supported. Of course it takes additional time and resources.
+
+```starlark
+# Build this target to produce archive.tar.gz:
+tar(
+    name = "my_archive",
+    compress = "gzip",
+    ...
+)
+```
+
+Normally if your tar file is small, you can keep using the built-in gzip, but if your tar file is large, over 1GB, parallel `pigz` will greatly improve the performance.
+
+1. Add `pigz` in `MODULE.bazel`; see https://registry.bazel.build/modules/pigz
+2. Use the new tar compressor attribute in your BUILD file, eg:
+
+```starlark
+tar(
+    name = "my_tar_file",
+    compressor = "@pigz",
+    compressor_args = "-n",
+    ...
 )
 ```
 """
