@@ -492,6 +492,9 @@ def _expand(file, expander, path = None):
 def _expand_root_symlink(symlink, expander):
     return _expand(symlink.target_file, expander, symlink.path)
 
+def _map_to_filepath_if_symlink(file,):
+    return file.path if getattr(file, "is_symlink", False) else None
+
 def _map_to_none(_):
     return None
 
@@ -618,21 +621,16 @@ def _mtree_mutate_impl(ctx):
         # Symlinks created with ctx.actions.symlink(target_file=...) do NOT have is_symlink=True
         # So we still need to call readlink for other files, but we can skip files we know are symlinks
         all_files = depset(direct = ctx.files.srcs, transitive = srcs_runfiles).to_list()
-        known_symlink_paths = []
-
-        for file in all_files:
-            if hasattr(file, "is_symlink") and file.is_symlink:
-                if file.path not in known_symlink_paths:
-                    known_symlink_paths.append(file.path)
 
         # Write list of known symlink paths for AWK to use (to avoid calling readlink on these)
+        symlink_list_args = ctx.actions.args().add_all(all_files, map_each = _map_to_filepath_if_symlink)
         ctx.actions.write(
             output = symlink_list_file,
-            content = "\n".join(known_symlink_paths),
+            content = symlink_list_args,
         )
 
         inputs.append(symlink_list_file)
-        assignments["symlink_list"] = symlink_list_file.path
+        assignments["symlink_list"] = symlink_list_file
 
     for (key, value) in assignments.items():
         args.add_joined(["--assign", key, value], join_with = "=")
