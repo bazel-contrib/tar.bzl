@@ -492,6 +492,9 @@ def _expand(file, expander, path = None):
 def _expand_root_symlink(symlink, expander):
     return _expand(symlink.target_file, expander, symlink.path)
 
+def _map_to_filepath_if_symlink(file,):
+    return file.path if getattr(file, "is_symlink", False) else None
+
 def _map_to_none(_):
     return None
 
@@ -604,14 +607,36 @@ def _mtree_mutate_impl(ctx):
         assignments["mtime"] = ctx.attr.mtime
     if ctx.attr.preserve_symlinks:
         assignments["preserve_symlinks"] = 1
+
+    inputs = ctx.files.srcs[:]
+    inputs.append(ctx.file.mtree)
+    inputs.append(ctx.file.awk_script)
+
+    # Create symlink list file if preserve_symlinks is enabled
+    if ctx.attr.preserve_symlinks:
+        symlink_list_file = ctx.actions.declare_file(ctx.attr.name + ".declared_symlinks")
+
+        # Use File.is_symlink API (Bazel 8+) to detect DANGLING symlinks
+        # Note: File.is_symlink is only True for files created with ctx.actions.declare_symlink()
+        # Symlinks created with ctx.actions.symlink(target_file=...) do NOT have is_symlink=True
+        # So we still need to call readlink for other files, but we can skip files we know are symlinks
+        all_files = depset(direct = ctx.files.srcs, transitive = srcs_runfiles)
+
+        # Write list of known symlink paths for AWK to use (to avoid calling readlink on these)
+        symlink_list_args = ctx.actions.args().add_all(all_files, map_each = _map_to_filepath_if_symlink)
+        ctx.actions.write(
+            output = symlink_list_file,
+            content = symlink_list_args,
+        )
+
+        inputs.append(symlink_list_file)
+        assignments["symlink_list"] = symlink_list_file
+
     for (key, value) in assignments.items():
         args.add_joined(["--assign", key, value], join_with = "=")
     args.add_joined(["--file", ctx.file.awk_script], join_with = "=")
     args.add(ctx.file.mtree)
 
-    inputs = ctx.files.srcs[:]
-    inputs.append(ctx.file.mtree)
-    inputs.append(ctx.file.awk_script)
     ctx.actions.run_shell(
         command = """
         {awk} $@ | sort > {out_mtree}
