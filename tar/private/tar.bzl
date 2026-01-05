@@ -620,7 +620,7 @@ def _mtree_mutate_impl(ctx):
         # Note: File.is_symlink is only True for files created with ctx.actions.declare_symlink()
         # Symlinks created with ctx.actions.symlink(target_file=...) do NOT have is_symlink=True
         # So we still need to call readlink for other files, but we can skip files we know are symlinks
-        all_files = depset(direct = ctx.files.srcs, transitive = srcs_runfiles).to_list()
+        all_files = depset(direct = ctx.files.srcs, transitive = srcs_runfiles)
 
         # Write list of known symlink paths for AWK to use (to avoid calling readlink on these)
         symlink_list_args = ctx.actions.args().add_all(all_files, map_each = _map_to_filepath_if_symlink)
