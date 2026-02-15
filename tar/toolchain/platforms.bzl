@@ -61,6 +61,12 @@ package(default_visibility = ["//visibility:public"])
 tar_toolchain(name = "bsdtar_toolchain", binary = "{}")
 """.format(binary))
 
+    # Bazel <8.3.0 lacks rctx.repo_metadata
+    if not hasattr(rctx, "repo_metadata"):
+        return None
+
+    return rctx.repo_metadata(reproducible = True)
+
 bsdtar_binary_repo = repository_rule(
     implementation = _bsdtar_binary_repo,
     attrs = {
