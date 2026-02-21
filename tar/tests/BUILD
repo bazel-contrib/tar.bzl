@@ -3,6 +3,7 @@ load("@bazel_lib//lib:diff_test.bzl", "diff_test")
 load("@bazel_lib//lib:testing.bzl", "assert_archive_contains")
 load("@bazel_skylib//rules:native_binary.bzl", "native_binary")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
+load("@rules_distroless//distroless:defs.bzl", "flatten")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@tar.bzl", "mtree_mutate", "mtree_spec", "tar")
 load(":asserts.bzl", "assert_tar_listing", "assert_unused_listing")
@@ -795,4 +796,104 @@ assert_archive_contains(
     archive = "20.tgz",
     expected = ["tar/tests/generated.txt"],
     type = "tar",
+)
+
+#############
+# Example 21: package_dir overrides existing ownership of directories
+_SRCS21 = [
+    "src_file",
+]
+
+tar(
+    name = "tar21_dir",
+    out = "21_dir.tar",
+    mtree = [
+        "existing/ uid=1000 gid=1000 time=946699200 mode=0755 type=dir",
+        "existing/nonroot/ uid=1000 gid=1000 time=946699200 mode=0755 type=dir",
+        "existing/nonroot/dir/ uid=1000 gid=1000 time=946699200 mode=0755 type=dir",
+    ],
+)
+
+mtree_spec(
+    name = "mtree21",
+    srcs = _SRCS21,
+)
+
+mtree_mutate(
+    name = "mtree21_mutated",
+    group = "1000",
+    mtree = ":mtree21",
+    owner = "1000",
+    package_dir = "existing/nonroot/dir",
+    strip_prefix = package_name(),
+)
+
+tar(
+    name = "tar21_file",
+    srcs = _SRCS21,
+    out = "21_file.tar",
+    mtree = "mtree21_mutated",
+)
+
+assert_tar_listing(
+    name = "tar21_dir_test",
+    actual = "tar21_dir",
+    expected = [
+        "drwxr-xr-x  0 1000   1000        0 Jan  1  2000 existing/",
+        "drwxr-xr-x  0 1000   1000        0 Jan  1  2000 existing/nonroot/",
+        "drwxr-xr-x  0 1000   1000        0 Jan  1  2000 existing/nonroot/dir/",
+    ],
+)
+
+assert_tar_listing(
+    name = "tar21_file_test",
+    actual = "tar21_file",
+    expected = [
+        "drwxr-xr-x  0 0      0           0 Jan  1  2000 existing/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2000 existing/nonroot/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2000 existing/nonroot/dir/",
+        "-rwxr-xr-x  0 1000   1000       21 Jan  1  2023 existing/nonroot/dir/src_file",
+    ],
+)
+
+flatten(
+    name = "tar21_flattened_dir_first",
+    deduplicate = True,
+    tars = [
+        "tar21_dir",
+        "tar21_file",
+    ],  # do not sort
+)
+
+# The directories from tar21_dir are overwritten by those from tar21_file, so they have 0 (not 1000) as uid/gid
+assert_tar_listing(
+    name = "tar21_flattened_dir_first_test",
+    actual = "tar21_flattened_dir_first",
+    expected = [
+        "drwxr-xr-x  0 0      0           0 Jan  1  2000 existing/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2000 existing/nonroot/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2000 existing/nonroot/dir/",
+        "-rwxr-xr-x  0 1000   1000       21 Jan  1  2023 existing/nonroot/dir/src_file",
+    ],
+)
+
+flatten(
+    name = "tar21_flattened_dir_last",
+    deduplicate = True,
+    tars = [
+        "tar21_file",
+        "tar21_dir",
+    ],  # do not sort
+)
+
+# The directories from tar21_dir overwrite those from tar21_file, so they have 1000 as uid/gid
+assert_tar_listing(
+    name = "tar21_flattened_dir_last_test",
+    actual = "tar21_flattened_dir_last",
+    expected = [
+        "-rwxr-xr-x  0 1000   1000       21 Jan  1  2023 existing/nonroot/dir/src_file",
+        "drwxr-xr-x  0 1000   1000        0 Jan  1  2000 existing/",
+        "drwxr-xr-x  0 1000   1000        0 Jan  1  2000 existing/nonroot/",
+        "drwxr-xr-x  0 1000   1000        0 Jan  1  2000 existing/nonroot/dir/",
+    ],
 )
