@@ -16,7 +16,7 @@ def assert_tar_listing(name, actual, expected, exclude = "", tags = []):
         srcs = [actual],
         testonly = True,
         outs = ["{}.listing".format(name)],
-        cmd = "$(BSDTAR_BIN) --list --verbose {} --file $(execpath {}) >$@".format(exclude, actual),
+        cmd = "TZ=UTC $(BSDTAR_BIN) --list --verbose {} --file $(execpath {}) >$@".format(exclude, actual),
         toolchains = ["@bsd_tar_toolchains//:resolved_toolchain"],
     )
 
