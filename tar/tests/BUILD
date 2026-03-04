@@ -807,10 +807,10 @@ mtree_spec(
 
 mtree_mutate(
     name = "mutate21",
-    mtree = ":mtree21",
-    strip_prefix = "tar/tests",
     includes = [":change_mode.awk"],
+    mtree = ":mtree21",
     script_args = {"custom_mode": "0644"},
+    strip_prefix = "tar/tests",
 )
 
 tar(

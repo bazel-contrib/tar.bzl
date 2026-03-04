@@ -50,10 +50,9 @@ def mtree_mutate(
         mtime = None,
         owner = None,
         ownername = None,
-        pipeline = Label("@tar.bzl//tar/private:default.awk"),
+        awk_script = Label("@tar.bzl//tar/private:default.awk"),
         script_args = {},
         includes = None,
-        awk_script = None,
         **kwargs):
     """Modify metadata in an mtree file.
 
@@ -67,17 +66,11 @@ def mtree_mutate(
         mtime: new modification time for all entries.
         owner: new uid for all entries.
         ownername: new uname for all entries.
-        pipeline: awk script for mtree mutation. Override to provide a custom pipeline; use @include "default" to compose with the built-in pipeline.
-        script_args: extra key=value variables passed via --assign. Available in pipeline and any includes.
-        includes: additional awk scripts appended after pipeline. A wrapper is generated that @include-s pipeline then each script here in order.
-        awk_script: deprecated, use pipeline= instead.
+        awk_script: awk script for mtree mutation. Override to provide a custom script; use @include "default" to compose with the built-in pipeline.
+        script_args: extra key=value variables passed via --assign. Available in awk_script and any includes.
+        includes: additional awk scripts appended after awk_script. A wrapper is generated that @include-s awk_script then each script here in order.
         **kwargs: additional named parameters to genrule
     """
-    if awk_script != None:
-        # buildifier: disable=print
-        print("awk_script is deprecated, use pipeline= instead")
-        pipeline = awk_script
-
     if preserve_symlinks and not srcs:
         fail("preserve_symlinks requires srcs to be set in order to resolve symlinks")
 
@@ -94,7 +87,7 @@ def mtree_mutate(
         mtime = str(mtime) if mtime else None,
         owner = owner,
         ownername = ownername,
-        pipeline = pipeline,
+        awk_script = awk_script,
         script_args = script_args,
         includes = includes or [],
         out = "{}.mtree".format(name),

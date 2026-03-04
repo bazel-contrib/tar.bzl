@@ -159,17 +159,17 @@ _mutate_mtree_attrs = {
         cfg = "exec",
         executable = True,
     ),
-    "pipeline": attr.label(
+    "awk_script": attr.label(
         allow_single_file = True,
         default = "@tar.bzl//tar/private:default.awk",
-        doc = "Awk script for mtree mutation. Override to provide a custom pipeline; use @include \"default\" to compose with the built-in pipeline.",
+        doc = "Awk script for mtree mutation. Override to provide a custom script; use @include \"default\" to compose with the built-in pipeline.",
     ),
     "script_args": attr.string_dict(
-        doc = "Extra key=value variables passed via --assign. Available in pipeline and any includes.",
+        doc = "Extra key=value variables passed via --assign. Available in awk_script and any includes.",
     ),
     "includes": attr.label_list(
         allow_files = [".awk"],
-        doc = "Additional awk scripts appended after pipeline. A wrapper is generated that @include-s pipeline then each script here in order.",
+        doc = "Additional awk scripts appended after awk_script. A wrapper is generated that @include-s awk_script then each script here in order.",
     ),
     "_default_pipeline": attr.label(
         default = Label("@tar.bzl//tar/private:default.awk"),
@@ -628,14 +628,14 @@ def _mtree_mutate_impl(ctx):
 
     # Build the wrapper script.
     # Ordering:
-    #   1. pipeline       — transforms $0 (strip_prefix, mtime, owner, package_dir, …)
-    #   2. user includes  — post-process the already-transformed $0 (appended after pipeline,
+    #   1. awk_script     — transforms $0 (strip_prefix, mtime, owner, package_dir, …)
+    #   2. user includes  — post-process the already-transformed $0 (appended after awk_script,
     #                       matching the documented contract in tar/mtree.bzl)
     #   3. preserve_symlinks.awk (when active) — buffers $0 and calls `next` to suppress print;
     #      its END block resolves symlinks and prints the final result
     #   4. { print; }     — always the last rule; skipped by preserve_symlinks.awk via `next`
     post_scripts = [ctx.file._preserve_symlinks_pipeline] if ctx.attr.preserve_symlinks else []
-    all_scripts = [ctx.file.pipeline] + ctx.files.includes + post_scripts
+    all_scripts = [ctx.file.awk_script] + ctx.files.includes + post_scripts
     lines = ['@include "{}"\n'.format(f.basename) for f in all_scripts]
     lines.append("{ print; }\n")
     wrapper = ctx.actions.declare_file(ctx.label.name + "_pipeline.awk")
@@ -645,16 +645,16 @@ def _mtree_mutate_impl(ctx):
     args.add_joined(["--file", script_to_run], join_with = "=")
     args.add(ctx.file.mtree)
 
-    # Compute AWKPATH — union of dirs from _default_pipeline, pipeline, includes, and
+    # Compute AWKPATH — union of dirs from _default_pipeline, awk_script, includes, and
     # preserve_symlinks.awk (when active) so that all @include lookups resolve correctly.
     awk_dirs = {}
-    for f in [ctx.file._default_pipeline, ctx.file.pipeline] + ctx.files.includes + post_scripts:
+    for f in [ctx.file._default_pipeline, ctx.file.awk_script] + ctx.files.includes + post_scripts:
         awk_dirs[f.dirname] = True
     awk_path = ":".join(awk_dirs.keys())
 
     inputs = ctx.files.srcs[:]
     inputs.append(ctx.file.mtree)
-    inputs.append(ctx.file.pipeline)
+    inputs.append(ctx.file.awk_script)
     inputs.append(ctx.file._default_pipeline)
     inputs.extend(ctx.files.includes)
     inputs.extend(post_scripts)
