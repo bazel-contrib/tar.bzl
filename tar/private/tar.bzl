@@ -447,7 +447,7 @@ def _tar_impl(ctx):
         ]
     return default_info
 
-def _mtree_line(file, type, content = None, uid = "0", gid = "0", time = "1672560000", mode = "0755"):
+def _mtree_line(file, type, content = None, uid = "0", gid = "0", time = "1672560000", mode = "0755", nlink = "1"):
     if type == "dir" and not file.endswith("/"):
         file += "/"
     spec = [
@@ -457,6 +457,7 @@ def _mtree_line(file, type, content = None, uid = "0", gid = "0", time = "167256
         "time=" + time,
         "mode=" + mode,
         "type=" + type,
+        "nlink=" + nlink,
     ]
     if content:
         spec.append("content=" + content)
