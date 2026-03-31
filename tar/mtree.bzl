@@ -50,7 +50,9 @@ def mtree_mutate(
         mtime = None,
         owner = None,
         ownername = None,
-        awk_script = Label("@tar.bzl//tar/private:modify_mtree.awk"),
+        awk_script = Label("@tar.bzl//tar/private:default.awk"),
+        script_args = {},
+        includes = None,
         **kwargs):
     """Modify metadata in an mtree file.
 
@@ -64,7 +66,9 @@ def mtree_mutate(
         mtime: new modification time for all entries.
         owner: new uid for all entries.
         ownername: new uname for all entries.
-        awk_script: may be overridden to change the script containing the modification logic.
+        awk_script: awk script for mtree mutation. Override to provide a custom script; use @include "default" to compose with the built-in pipeline.
+        script_args: extra key=value variables passed via --assign. Available in awk_script and any includes.
+        includes: additional awk scripts appended after awk_script. A wrapper is generated that @include-s awk_script then each script here in order.
         **kwargs: additional named parameters to genrule
     """
     if preserve_symlinks and not srcs:
@@ -84,6 +88,8 @@ def mtree_mutate(
         owner = owner,
         ownername = ownername,
         awk_script = awk_script,
+        script_args = script_args,
+        includes = includes or [],
         out = "{}.mtree".format(name),
         **kwargs
     )
