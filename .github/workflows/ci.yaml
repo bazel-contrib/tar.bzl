@@ -28,6 +28,40 @@ jobs:
       - uses: actions/checkout@v4
       - uses: bazel-contrib/setup-bazel@0.15.0
       - run: bazel test //...
+  # Theory 1: verify that changing a TreeArtifact's *content* (same file paths)
+  # invalidates the tar action's cache when compute_unused_inputs is enabled.
+  #
+  # The test builds //tar/tests:tar_theory1 twice with a shared --disk_cache.
+  # Between the two builds it rewrites tar/tests/whl_module.py so that the
+  # theory1_whl_install TreeArtifact has different content.  If whl_install is
+  # incorrectly pruned from the tar action's cache key the archive will be a
+  # stale cache hit; otherwise the archive must change to reflect the new content.
+  cache_invalidation_test:
+    strategy:
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bazel-contrib/setup-bazel@0.15.0
+      - name: Build v1 (populate disk cache)
+        run: |
+          echo "# whl content v1" > tar/tests/whl_module.py
+          bazel build //tar/tests:tar_theory1 --disk_cache=/tmp/theory1_cache
+          cp bazel-bin/tar/tests/theory1.tar /tmp/theory1_v1.tar
+      - name: Change whl content and rebuild
+        run: |
+          echo "# whl content v2 — different from v1" > tar/tests/whl_module.py
+          bazel build //tar/tests:tar_theory1 --disk_cache=/tmp/theory1_cache
+      - name: Verify archive changed (cache correctly invalidated)
+        run: |
+          if cmp -s bazel-bin/tar/tests/theory1.tar /tmp/theory1_v1.tar; then
+            echo "FAIL: archive did not change after whl content change"
+            echo "      theory1_whl_install was incorrectly pruned from the tar cache key"
+            exit 1
+          fi
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -36,7 +70,7 @@ jobs:
   # For branch protection settings, this job provides a "stable" name that can be used to gate PR merges
   # on "all matrix jobs were successful".
   conclusion:
-    needs: [test, pre-commit]
+    needs: [test, cache_invalidation_test, pre-commit]
     runs-on: ubuntu-latest
     if: always()
     steps:

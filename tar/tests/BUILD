@@ -8,6 +8,7 @@ load("@tar.bzl", "mtree_mutate", "mtree_spec", "tar")
 load(":asserts.bzl", "assert_tar_listing", "assert_unused_listing")
 load(":directory.bzl", "directory")
 load(":node_modules_tree.bzl", "node_modules_tree")
+load(":cross_linking_tree.bzl", "venv_binary", "venv_binary_independent", "whl_install", "whl_install_from_file")
 load(":runfiles_symlinks.bzl", "runfiles_symlinks")
 
 # The examples below work with both source files and generated files.
@@ -826,4 +827,134 @@ assert_tar_listing(
     expected = [
         "-rw-r--r--  0 0      0          21 Jan  1  2023 src_file",
     ],
+)
+
+#############
+# Example 22: compute_unused_inputs with directory-level cross-TreeArtifact symlinks.
+#
+# node_modules_tree produces TreeArtifacts where dep_symlink_b_to_a and node_modules_a
+# are directory-level symlinks to store_a.  Both the symlink directories AND store_a
+# itself are in e17_binary's runfiles, so the mtree contains content= entries for
+# store_a's files directly.  The pruner therefore correctly does not prune store_a.
+#
+# This is a regression test: it verifies that directory-level symlink TreeArtifacts
+# in runfiles are handled correctly and nothing is incorrectly pruned.
+
+mtree_spec(
+    name = "mtree22",
+    srcs = [":e17_binary"],
+)
+
+tar(
+    name = "tar22",
+    srcs = [":e17_binary"],
+    out = "22.tar",
+    compute_unused_inputs = 1,
+    mtree = ":mtree22",
+)
+
+# store_a backing files must NOT appear in unused_inputs; they are needed to
+# resolve dep_symlink_b_to_a → store_a and node_modules_a → store_a at runtime.
+assert_unused_listing(
+    name = "test22_cross_dir_symlink_treeartifact_not_pruned",
+    actual = ":tar22",
+    expected = [],
+)
+
+#############
+# Example 23: compute_unused_inputs with file-level cross-TreeArtifact symlinks.
+#
+# cross_linking_tree produces a binary whose runfiles contain:
+#   - *_whl_install: a real TreeArtifact with module.py
+#   - *_venv: a TreeArtifact containing lib/module.py as a file-level symlink into whl_install
+#
+# The mtree content= paths reference files under *_venv/ (e.g. venv/lib/module.py).
+# The *_whl_install artifact path (whl_install/module.py) never appears in any mtree
+# content=, so the join marks whl_install files as unused.  At runtime bsdtar
+# dereferences venv/lib/module.py → whl_install/module.py and fails if whl_install
+# has been pruned from the sandbox.
+#
+# This test is expected to FAIL until the pruner is fixed.
+
+whl_install(name = "e23_whl_install")
+
+venv_binary(
+    name = "e23_venv_binary",
+    whl_install = ":e23_whl_install",
+)
+
+# mtree is derived only from e23_venv_binary's runfiles.  The venv contains
+# file-level symlinks into e23_whl_install, so the mtree content= paths are
+# e23_venv_binary_venv/lib/module.py (the symlink path), never the backing
+# e23_whl_install/module.py path.  The pruner therefore marks e23_whl_install
+# files as unused even though bsdtar must dereference the symlinks at
+# archive-creation time.
+
+mtree_spec(
+    name = "mtree23",
+    srcs = [":e23_venv_binary"],
+)
+
+tar(
+    name = "tar23",
+    srcs = [
+        ":e23_venv_binary",
+        ":e23_whl_install",  # needed by bsdtar via symlink dereference, not in mtree
+    ],
+    out = "23.tar",
+    compute_unused_inputs = 1,
+    mtree = ":mtree23",
+)
+
+# e23_whl_install files must NOT appear in unused_inputs even though no mtree
+# content= directly names them: bsdtar dereferences
+#   e23_venv_binary_venv/lib/module.py → e23_whl_install/module.py
+# at archive-creation time and fails if e23_whl_install is absent from the sandbox.
+assert_unused_listing(
+    name = "test23_file_level_cross_treeartifact_not_pruned",
+    actual = ":tar23",
+    expected = [],
+)
+
+#############
+# Theory 1 targets: used by the CI cache-invalidation test.
+#
+# whl_install_from_file reads whl_module.py so the CI step can change the file's
+# content between two `bazel build` invocations (using --disk_cache) and verify
+# that the archive is rebuilt.  If whl_install is incorrectly pruned from the tar
+# action's cache key, the archive will be stale after the content change.
+
+whl_install_from_file(
+    name = "theory1_whl_install",
+    srcs = ["whl_module.py"],
+    tags = ["manual"],
+)
+
+# venv_binary_independent: the venv action does NOT depend on whl_install at
+# the Bazel level, so changing whl_module.py leaves the venv digest unchanged.
+# Only theory1_whl_install changes, which is exactly what we need: if
+# whl_install is incorrectly in unused_inputs_list, the tar's reduced cache
+# key is identical to the previous build and Bazel serves a stale archive.
+venv_binary_independent(
+    name = "theory1_venv_binary",
+    whl_name = "theory1_whl_install",
+    tags = ["manual"],
+)
+
+mtree_spec(
+    name = "mtree_theory1",
+    srcs = [":theory1_venv_binary"],
+    tags = ["manual"],
+)
+
+tar(
+    name = "tar_theory1",
+    srcs = [
+        ":theory1_venv_binary",
+        ":theory1_whl_install",  # needed by bsdtar via symlink dereference, not in mtree
+    ],
+    out = "theory1.tar",
+    compute_unused_inputs = 1,
+    mtree = ":mtree_theory1",
+    tags = ["manual"],
 )
