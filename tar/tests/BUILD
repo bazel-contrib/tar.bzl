@@ -7,9 +7,9 @@ load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load("@tar.bzl", "mtree_mutate", "mtree_spec", "tar")
 load(":asserts.bzl", "assert_tar_listing", "assert_unused_listing")
+load(":cross_linking_tree.bzl", "venv_binary", "venv_binary_independent", "whl_install", "whl_install_from_file")
 load(":directory.bzl", "directory")
 load(":node_modules_tree.bzl", "node_modules_tree")
-load(":cross_linking_tree.bzl", "venv_binary", "venv_binary_independent", "whl_install", "whl_install_from_file")
 load(":runfiles_symlinks.bzl", "runfiles_symlinks")
 
 # The examples below work with both source files and generated files.
@@ -934,7 +934,7 @@ sh_test(
     ],
     data = [
         "//tar/private:compute_unused_inputs.awk",
-        "@gawk//:gawk",
+        "@gawk",
     ],
 )
 
@@ -959,8 +959,8 @@ whl_install_from_file(
 # key is identical to the previous build and Bazel serves a stale archive.
 venv_binary_independent(
     name = "theory1_venv_binary",
-    whl_name = "theory1_whl_install",
     tags = ["manual"],
+    whl_name = "theory1_whl_install",
 )
 
 mtree_spec(
@@ -1004,8 +1004,8 @@ whl_install_from_file(
 
 venv_binary(
     name = "theory2_venv_binary",
-    whl_install = ":theory2_whl_install",
     tags = ["manual"],
+    whl_install = ":theory2_whl_install",
 )
 
 mtree_spec(

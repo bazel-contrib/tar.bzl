@@ -353,8 +353,12 @@ def _configured_unused_inputs_file(ctx, srcs, keep):
         # Without the actual files present in the sandbox, readlink silently fails and
         # symlink targets are incorrectly marked as unused (cross-TreeArtifact bug).
         inputs = depset(
-            direct = [prunable_inputs, keep_inputs, ctx.file.mtree,
-                      ctx.file._compute_unused_inputs_awk],
+            direct = [
+                prunable_inputs,
+                keep_inputs,
+                ctx.file.mtree,
+                ctx.file._compute_unused_inputs_awk,
+            ],
             transitive = [srcs],
         ),
         tools = [gawk],
