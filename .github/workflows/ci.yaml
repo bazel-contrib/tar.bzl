@@ -28,6 +28,37 @@ jobs:
       - uses: actions/checkout@v4
       - uses: bazel-contrib/setup-bazel@0.15.0
       - run: bazel test //...
+  # Theory 2: symlinks inside a venv TreeArtifact that point into a separate
+  # whl_install TreeArtifact must keep whl_install in the tar cache key.
+  #
+  # venv_binary declares whl_install as an action input (no dangling symlinks on
+  # any platform), but the mtree only covers venv_binary's own runfiles.  Because
+  # no mtree content= path names a file inside whl_install directly, the pruner
+  # must still retain whl_install — bsdtar needs to dereference the venv symlinks
+  # into it.  The test fails if whl_install appears in the _unused_inputs_file
+  # output group, which means it would be dropped from the tar cache key and a
+  # whl content change could produce a stale cached archive.
+  cross_treeartifact_symlink_pruning_test:
+    strategy:
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bazel-contrib/setup-bazel@0.15.0
+      - name: Build tar_theory2 and inspect unused_inputs
+        run: |
+          bazel build //tar/tests:tar_theory2 --output_groups=_unused_inputs_file
+          unused=$(cat bazel-bin/tar/tests/tar_theory2.unused_inputs.txt 2>/dev/null || true)
+          if echo "$unused" | grep -q "theory2_whl_install"; then
+            echo "FAIL: theory2_whl_install incorrectly marked as unused"
+            echo "      whl_install is referenced via venv symlinks and must stay in the cache key"
+            echo "Unused inputs:"
+            echo "$unused"
+            exit 1
+          fi
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -36,7 +67,7 @@ jobs:
   # For branch protection settings, this job provides a "stable" name that can be used to gate PR merges
   # on "all matrix jobs were successful".
   conclusion:
-    needs: [test, pre-commit]
+    needs: [test, cross_treeartifact_symlink_pruning_test, pre-commit]
     runs-on: ubuntu-latest
     if: always()
     steps:

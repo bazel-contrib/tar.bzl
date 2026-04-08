@@ -133,6 +133,15 @@ Possible values:
         values = [-1, 0, 1],
     ),
     "_compute_unused_inputs_flag": attr.label(default = Label("//tar:tar_compute_unused_inputs")),
+    "_awk": attr.label(
+        default = "@gawk",
+        cfg = "exec",
+        executable = True,
+    ),
+    "_compute_unused_inputs_awk": attr.label(
+        default = Label("@tar.bzl//tar/private:compute_unused_inputs.awk"),
+        allow_single_file = True,
+    ),
 }
 
 _mtree_attrs = {
@@ -292,7 +301,7 @@ def _configured_unused_inputs_file(ctx, srcs, keep):
     Compute the unused_inputs_list, if configured.
 
     Args:
-        ctx: `tar` rule context. Must provide `_tar_attrs` and a `coreutils_toolchain_type` toolchain.
+        ctx: `tar` rule context. Must provide `_tar_attrs`.
         srcs: sequence or depset. The set of all input sources being provided to the `tar` rule.
         keep: sequence or depset. A hardcoded set of sources to consider "used" regardless of whether or not they appear in the mtree.
 
@@ -301,7 +310,7 @@ def _configured_unused_inputs_file(ctx, srcs, keep):
     if not _is_unused_inputs_enabled(ctx.attr):
         return None
 
-    coreutils = ctx.toolchains["@bazel_lib//lib:coreutils_toolchain_type"].coreutils_info.bin
+    gawk = ctx.executable._awk
 
     prunable_inputs = ctx.actions.declare_file(ctx.attr.name + ".prunable_inputs.txt")
     keep_inputs = ctx.actions.declare_file(ctx.attr.name + ".keep_inputs.txt")
@@ -330,38 +339,39 @@ def _configured_unused_inputs_file(ctx, srcs, keep):
     #   * are in the set of PRUNABLE_INPUTS
     #   * are not found in any content= or contents= keyword in the MTREE
     #   * are not in the hardcoded KEEP_INPUTS set
+    #   * are not symlink targets of any of the above
     #
     # Comparison and filtering of PRUNABLE_INPUTS is performed in the vis-encoded representation, stored in field 1,
     # before being written out in the un-vis-encoded form Bazel understands, from field 2.
     #
-    # Note: bsdtar (libarchive) accepts both content= and contents= to identify source file:
-    # ref https://github.com/libarchive/libarchive/blob/a90e9d84ec147be2ef6a720955f3b315cb54bca3/libarchive/archive_read_support_format_mtree.c#L1640
-    #
-    # TODO: Make comparison exact by converting all inputs to a canonical vis-encoded form before comparing.
-    #       See also: https://github.com/bazel-contrib/bazel-lib/issues/794
+    # Symlink following (rule 3) ensures that cross-TreeArtifact symlink targets are not incorrectly
+    # pruned: if a content= path is a symlink into another TreeArtifact, the target files must stay
+    # in the cache key so bsdtar can dereference them at archive creation time.
     ctx.actions.run_shell(
         outputs = [unused_inputs],
-        inputs = [prunable_inputs, keep_inputs, ctx.file.mtree],
-        tools = [coreutils],
-        command = '''
-            "$COREUTILS" join -v 1                                                            \\
-                <("$COREUTILS" sort -u "$PRUNABLE_INPUTS")                                    \\
-                <("$COREUTILS" sort -u                                                        \\
-                    <(grep -o '\\bcontents\\?=\\S*' "$MTREE" | "$COREUTILS" cut -d'=' -f 2-)  \\
-                    "$KEEP_INPUTS"                                                            \\
-                )                                                                             \\
-                | "$COREUTILS" cut -d' ' -f 2-                                                \\
-                > "$UNUSED_INPUTS"
-        ''',
+        # srcs must be in inputs so readlink can follow symlinks inside TreeArtifacts.
+        # Without the actual files present in the sandbox, readlink silently fails and
+        # symlink targets are incorrectly marked as unused (cross-TreeArtifact bug).
+        inputs = depset(
+            direct = [
+                prunable_inputs,
+                keep_inputs,
+                ctx.file.mtree,
+                ctx.file._compute_unused_inputs_awk,
+            ],
+            transitive = [srcs],
+        ),
+        tools = [gawk],
+        command = '"$GAWK" -f "$AWK_SCRIPT" "$PRUNABLE_INPUTS" > "$UNUSED_INPUTS"',
         env = {
-            "COREUTILS": coreutils.path,
-            "PRUNABLE_INPUTS": prunable_inputs.path,
+            "GAWK": gawk.path,
+            "AWK_SCRIPT": ctx.file._compute_unused_inputs_awk.path,
             "KEEP_INPUTS": keep_inputs.path,
             "MTREE": ctx.file.mtree.path,
+            "PRUNABLE_INPUTS": prunable_inputs.path,
             "UNUSED_INPUTS": unused_inputs.path,
         },
         mnemonic = "UnusedTarInputs",
-        toolchain = "@bazel_lib//lib:coreutils_toolchain_type",
     )
 
     return unused_inputs

@@ -4,8 +4,10 @@ load("@bazel_lib//lib:testing.bzl", "assert_archive_contains")
 load("@bazel_skylib//rules:native_binary.bzl", "native_binary")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load("@tar.bzl", "mtree_mutate", "mtree_spec", "tar")
 load(":asserts.bzl", "assert_tar_listing", "assert_unused_listing")
+load(":cross_linking_tree.bzl", "venv_binary", "venv_binary_independent", "whl_install", "whl_install_from_file")
 load(":directory.bzl", "directory")
 load(":node_modules_tree.bzl", "node_modules_tree")
 load(":runfiles_symlinks.bzl", "runfiles_symlinks")
@@ -826,4 +828,200 @@ assert_tar_listing(
     expected = [
         "-rw-r--r--  0 0      0          21 Jan  1  2023 src_file",
     ],
+)
+
+#############
+# Example 22: compute_unused_inputs with directory-level cross-TreeArtifact symlinks.
+#
+# node_modules_tree produces TreeArtifacts where dep_symlink_b_to_a and node_modules_a
+# are directory-level symlinks to store_a.  Both the symlink directories AND store_a
+# itself are in e17_binary's runfiles, so the mtree contains content= entries for
+# store_a's files directly.  The pruner therefore correctly does not prune store_a.
+#
+# This is a regression test: it verifies that directory-level symlink TreeArtifacts
+# in runfiles are handled correctly and nothing is incorrectly pruned.
+
+mtree_spec(
+    name = "mtree22",
+    srcs = [":e17_binary"],
+)
+
+tar(
+    name = "tar22",
+    srcs = [":e17_binary"],
+    out = "22.tar",
+    compute_unused_inputs = 1,
+    mtree = ":mtree22",
+)
+
+# store_a backing files must NOT appear in unused_inputs; they are needed to
+# resolve dep_symlink_b_to_a → store_a and node_modules_a → store_a at runtime.
+assert_unused_listing(
+    name = "test22_cross_dir_symlink_treeartifact_not_pruned",
+    actual = ":tar22",
+    expected = [],
+)
+
+#############
+# Example 23: compute_unused_inputs with file-level cross-TreeArtifact symlinks.
+#
+# cross_linking_tree produces a binary whose runfiles contain:
+#   - *_whl_install: a real TreeArtifact with module.py
+#   - *_venv: a TreeArtifact containing lib/module.py as a file-level symlink into whl_install
+#
+# The mtree content= paths reference files under *_venv/ (e.g. venv/lib/module.py).
+# The *_whl_install artifact path (whl_install/module.py) never appears in any mtree
+# content=, so the join marks whl_install files as unused.  At runtime bsdtar
+# dereferences venv/lib/module.py → whl_install/module.py and fails if whl_install
+# has been pruned from the sandbox.
+#
+# This test is expected to FAIL until the pruner is fixed.
+
+whl_install(name = "e23_whl_install")
+
+venv_binary(
+    name = "e23_venv_binary",
+    whl_install = ":e23_whl_install",
+)
+
+# mtree is derived only from e23_venv_binary's runfiles.  The venv contains
+# file-level symlinks into e23_whl_install, so the mtree content= paths are
+# e23_venv_binary_venv/lib/module.py (the symlink path), never the backing
+# e23_whl_install/module.py path.  The pruner therefore marks e23_whl_install
+# files as unused even though bsdtar must dereference the symlinks at
+# archive-creation time.
+
+mtree_spec(
+    name = "mtree23",
+    srcs = [":e23_venv_binary"],
+)
+
+tar(
+    name = "tar23",
+    srcs = [
+        ":e23_venv_binary",
+        ":e23_whl_install",  # needed by bsdtar via symlink dereference, not in mtree
+    ],
+    out = "23.tar",
+    compute_unused_inputs = 1,
+    mtree = ":mtree23",
+)
+
+# e23_whl_install files must NOT appear in unused_inputs even though no mtree
+# content= directly names them: bsdtar dereferences
+#   e23_venv_binary_venv/lib/module.py → e23_whl_install/module.py
+# at archive-creation time and fails if e23_whl_install is absent from the sandbox.
+assert_unused_listing(
+    name = "test23_file_level_cross_treeartifact_not_pruned",
+    actual = ":tar23",
+    expected = [],
+)
+
+#############
+# Unit tests for tar/private/compute_unused_inputs.awk
+#
+# Each test case creates real files and symlinks in $TEST_TMPDIR, writes fake
+# prunable_inputs / keep_inputs / mtree files, runs the awk script, and asserts
+# on its output.  Tests 4, 5, and 8 fail with the current stub and will pass
+# once the symlink-following implementation is in place.
+
+sh_test(
+    name = "compute_unused_inputs_test",
+    srcs = ["compute_unused_inputs_test.sh"],
+    args = [
+        "$(rootpath //tar/private:compute_unused_inputs.awk)",
+        "$(rootpath @gawk//:gawk)",
+    ],
+    data = [
+        "//tar/private:compute_unused_inputs.awk",
+        "@gawk",
+    ],
+)
+
+#############
+# Theory 1 targets: kept for reference / local experimentation only.
+#
+# venv_binary_independent uses inputs=[] which causes Bazel to reject the
+# TreeArtifact on all platforms (dangling symlink inside the declared directory).
+# All targets below are tagged manual so they are excluded from wildcard builds
+# and CI.  Use the theory2 targets instead for CI-compatible testing.
+
+whl_install_from_file(
+    name = "theory1_whl_install",
+    srcs = ["whl_module.py"],
+    tags = ["manual"],
+)
+
+# venv_binary_independent: the venv action does NOT depend on whl_install at
+# the Bazel level, so changing whl_module.py leaves the venv digest unchanged.
+# Only theory1_whl_install changes, which is exactly what we need: if
+# whl_install is incorrectly in unused_inputs_list, the tar's reduced cache
+# key is identical to the previous build and Bazel serves a stale archive.
+venv_binary_independent(
+    name = "theory1_venv_binary",
+    tags = ["manual"],
+    whl_name = "theory1_whl_install",
+)
+
+mtree_spec(
+    name = "mtree_theory1",
+    srcs = [":theory1_venv_binary"],
+    tags = ["manual"],
+)
+
+tar(
+    name = "tar_theory1",
+    srcs = [
+        ":theory1_venv_binary",
+        ":theory1_whl_install",  # needed by bsdtar via symlink dereference, not in mtree
+    ],
+    out = "theory1.tar",
+    compute_unused_inputs = 1,
+    mtree = ":mtree_theory1",
+    tags = ["manual"],
+)
+
+#############
+# Theory 2 targets: CI test for cross-TreeArtifact symlink pruning.
+#
+# venv_binary properly declares whl_install as an action input, so the sandbox
+# contains the whl TreeArtifact during the venv action and symlinks inside it
+# are never dangling.  This makes the targets safe to build on all platforms.
+#
+# The mtree covers only venv_binary's runfiles; whl_install is an extra tar src
+# needed by bsdtar to dereference the venv symlinks.  Because no mtree content=
+# path names a file inside whl_install directly, the pruner incorrectly marks
+# whl_install as unused even though bsdtar must read through the symlinks.
+#
+# CI checks the _unused_inputs_file output group and fails if theory2_whl_install
+# appears there.  All targets are manual to avoid wildcard build inclusion.
+
+whl_install_from_file(
+    name = "theory2_whl_install",
+    srcs = ["whl_module.py"],
+    tags = ["manual"],
+)
+
+venv_binary(
+    name = "theory2_venv_binary",
+    tags = ["manual"],
+    whl_install = ":theory2_whl_install",
+)
+
+mtree_spec(
+    name = "mtree_theory2",
+    srcs = [":theory2_venv_binary"],
+    tags = ["manual"],
+)
+
+tar(
+    name = "tar_theory2",
+    srcs = [
+        ":theory2_venv_binary",
+        ":theory2_whl_install",  # needed by bsdtar via symlink dereference, not in mtree
+    ],
+    out = "theory2.tar",
+    compute_unused_inputs = 1,
+    mtree = ":mtree_theory2",
+    tags = ["manual"],
 )
