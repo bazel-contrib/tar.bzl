@@ -20,9 +20,7 @@ jobs:
         # Note: linux is tested on Buildkite via Aspect Workflows
         os:
           - macos-latest
-          # TODO: Windows was disabled in the original bazel-lib location where tar was tested:
-          # https://github.com/bazel-contrib/bazel-lib/blob/8a9204ab17cbe337a64e838dd193b00f243764fb/.github/workflows/ci.yaml#L92
-          # - windows-latest
+          - windows-latest
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
