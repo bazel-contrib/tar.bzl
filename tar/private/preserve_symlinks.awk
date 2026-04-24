@@ -69,22 +69,60 @@ function make_relative_link(path1, path2, i, common, target, relative_path, back
             path = parts[2]
             # Store paths for look up
             symlink_map[path] = $1
-            # Resolve the symlink if it exists
-            resolved_path = ""
-            cmd = "readlink -f \"" path "\""
-            cmd | getline resolved_path
+            # Resolve the symlink if it exists.
+            #
+            # We call plain `readlink` first and keep its result only if it
+            # returned a RELATIVE string. That's specifically for
+            # `declare_symlink` outputs whose `target_path` is an authored
+            # relative string (e.g. `../foo/bar` or `sibling-name`) that we
+            # want to preserve verbatim in the archive — `readlink -f`
+            # would canonicalise these through and lose the intent.
+            #
+            # For anything else (plain returns absolute, or nothing),
+            # `readlink -f` walks the full chain. That handles:
+            #   * absolute Bazel-produced symlinks (`ctx.actions.symlink`
+            #     with `target_file`).
+            #   * sandboxed-action execution, where plain `readlink` on a
+            #     relative input path returns the sandbox→main-execroot
+            #     mapping (`/.../execroot/_main/<path>`) — uninformative
+            #     for classification; canonical resolution is what we want.
+            raw_readlink = ""
+            cmd = "readlink \"" path "\""
+            cmd | getline raw_readlink
             close(cmd)
-            # If readlink -f fails use readlink for relative links
-            if (resolved_path == "") {
-                cmd = "readlink \"" path "\""
+            resolved_path = ""
+            if (raw_readlink != "" && raw_readlink !~ /^\//) {
+                resolved_path = raw_readlink
+            } else {
+                cmd = "readlink -f \"" path "\""
                 cmd | getline resolved_path
                 close(cmd)
             }
 
             if (resolved_path) {
-                if (resolved_path ~ bin_dir || resolved_path ~ /\.\.\//) {
-                    # Strip down the resolved path to start from bin_dir
-                    sub("^.*" bin_dir, bin_dir, resolved_path)
+                # Accept any of:
+                #  * absolute paths under `/.../bazel-out/<any-cfg>/bin/...`
+                #    (declare_file / declare_directory outputs). We don't
+                #    require <cfg> to equal the mtree_mutate action's own
+                #    `ctx.bin_dir.path` — downstream targets frequently sit
+                #    under transitioned configs (`-ST-<hash>` / `-opt-exec-ST-<hash>`
+                #    / platform_transition variants), and we want their
+                #    symlinks classified too.
+                #  * absolute paths under `/.../external/<repo>/...`, which
+                #    is where Bazel puts files for external repos that don't
+                #    go through `bazel-out` (e.g. python-build-standalone's
+                #    interpreter tree in rules_python).
+                #  * relative paths (e.g. `../foo`) — declare_symlink outputs
+                #    whose target_path was authored as a relative string.
+                #
+                # In each case, normalise `resolved_path` to the execroot-
+                # relative form that the mtree's `content=` fields use so
+                # `symlink_map` lookups can match.
+                if (resolved_path ~ /\/bazel-out\/[^\/]+\/bin\// || \
+                    resolved_path ~ /\/external\// || \
+                    resolved_path ~ /\.\.\//) {
+                    sub(/^.*\/bazel-out\//, "bazel-out/", resolved_path)
+                    sub(/^.*\/external\//, "external/", resolved_path)
                     # If the resolved path is different from the original path,
                     # or if it's a relative path
                     if (path != resolved_path || resolved_path ~ /\.\.\//) {
