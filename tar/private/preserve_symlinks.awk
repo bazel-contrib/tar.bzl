@@ -47,9 +47,13 @@ function make_relative_link(path1, path2, i, common, target, relative_path, back
     target = substr(path1, length(common) + 2)  # "+2" to remove trailing "/"
     relative_path = substr(path2, length(common) + 2)
 
-    # Count directories to go up from path2
-    back_steps = "../"
+    # Count directories to walk up from path2's PARENT directory (path2
+    # identifies a file — its location for relative-symlink resolution
+    # is the parent of that file). For a relative_path of N segments,
+    # N-1 of them are intermediate directories; walking up from path2's
+    # parent to the common prefix therefore needs N-1 `../`s.
     split(relative_path, path2_segments, "/")
+    back_steps = ""
     for (i = 1; i < length(path2_segments); i++) {
         back_steps = back_steps "../"
     }
