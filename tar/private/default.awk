@@ -55,6 +55,16 @@
     }
 
     if (package_dir != "") {
+        # Compose ownership keywords that should also apply to synthesized parent
+        # directories, so they don't override pre-existing ownership when this tar
+        # is flattened/extracted alongside layers that already declare those dirs.
+        # See https://github.com/bazel-contrib/tar.bzl/issues/91.
+        ownership_attrs = ""
+        if (owner != "")     ownership_attrs = ownership_attrs " uid=" owner
+        if (group != "")     ownership_attrs = ownership_attrs " gid=" group
+        if (ownername != "") ownership_attrs = ownership_attrs " uname=" ownername
+        if (groupname != "") ownership_attrs = ownership_attrs " gname=" groupname
+
         # First ensure parent directories exist
         if (!($0 ~ /type=dir/)) {
             split(package_dir, dirs, "/")
@@ -67,7 +77,7 @@
                 }
                 # Only print if we haven't seen this directory before
                 if (!(path in seen_dirs)) {
-                    print path " type=dir mode=0755 time=" default_time
+                    print path " type=dir mode=0755 time=" default_time ownership_attrs
                     seen_dirs[path] = 1
                 }
             }

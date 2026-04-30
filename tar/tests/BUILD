@@ -827,3 +827,41 @@ assert_tar_listing(
         "-rw-r--r--  0 0      0          21 Jan  1  2023 src_file",
     ],
 )
+
+#############
+# Example 22: package_dir-synthesized parent directories carry the configured
+# owner/group/ownername/groupname instead of defaulting to root:root.
+# Regression test for https://github.com/bazel-contrib/tar.bzl/issues/91.
+mtree_spec(
+    name = "mtree22",
+    srcs = ["src_file"],
+)
+
+mtree_mutate(
+    name = "mutate22",
+    group = "1000",
+    groupname = "nonroot",
+    mtree = ":mtree22",
+    owner = "1000",
+    ownername = "nonroot",
+    package_dir = "home/nonroot/dir",
+    strip_prefix = "tar/tests",
+)
+
+tar(
+    name = "tar22",
+    srcs = ["src_file"],
+    out = "22.tar",
+    mtree = ":mutate22",
+)
+
+assert_tar_listing(
+    name = "test22_package_dir_ownership",
+    actual = ":tar22",
+    expected = [
+        "drwxr-xr-x  0 nonroot nonroot     0 Jan  1  2000 home/",
+        "drwxr-xr-x  0 nonroot nonroot     0 Jan  1  2000 home/nonroot/",
+        "drwxr-xr-x  0 nonroot nonroot     0 Jan  1  2000 home/nonroot/dir/",
+        "-rwxr-xr-x  0 1000    1000       21 Jan  1  2023 home/nonroot/dir/src_file",
+    ],
+)
