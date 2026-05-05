@@ -10,6 +10,16 @@
       "email": "sahin@aspect.build",
       "github": "thesayyn",
       "name": "Şahin Yort"
+    },
+    {
+      "email": "dzbarsky@gmail.com",
+      "github": "dzbarsky",
+      "name": "David Zbarsky"
+    },
+    {
+      "email": "jason@aspect.build",
+      "github": "jbedard",
+      "name": "Jason Bedard"
     }
   ],
   "repository": ["github:bazel-contrib/tar.bzl"],
