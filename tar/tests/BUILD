@@ -865,3 +865,105 @@ assert_tar_listing(
         "-rwxr-xr-x  0 1000    1000       21 Jan  1  2023 home/nonroot/dir/src_file",
     ],
 )
+
+#############
+# Example 23: Test excludes functionality - exclude specific files from tar
+mtree_spec(
+    name = "mtree23",
+    srcs = [
+        "src_file",
+        ":fixture1",
+    ],
+)
+
+mtree_mutate(
+    name = "exclude_generated",
+    excludes = [
+        "tar/tests/generated.txt",
+    ],
+    mtree = "mtree23",
+)
+
+tar(
+    name = "tar_excludes_single",
+    srcs = [
+        "src_file",
+        ":fixture1",
+    ],
+    out = "23.tar",
+    mtree = "exclude_generated",
+)
+
+assert_tar_listing(
+    name = "test23_excludes_single",
+    actual = "tar_excludes_single",
+    expected = [
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/",
+        "-rwxr-xr-x  0 0      0          21 Jan  1  2023 tar/tests/src_file",
+    ],
+)
+
+#############
+# Example 24: Test multiple excludes
+mtree_mutate(
+    name = "exclude_multiple",
+    excludes = [
+        "tar/tests/generated.txt",
+        "tar/tests/src_file",
+    ],
+    mtree = "mtree23",
+)
+
+tar(
+    name = "tar_excludes_multiple",
+    srcs = [
+        "src_file",
+        ":fixture1",
+    ],
+    out = "24.tar",
+    mtree = "exclude_multiple",
+)
+
+assert_tar_listing(
+    name = "test24_excludes_multiple",
+    actual = "tar_excludes_multiple",
+    expected = [
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/",
+    ],
+)
+
+#############
+# Example 25: Test excludes with strip_prefix and package_dir
+# Demonstrates transformation order: excludes → strip_prefix → package_dir
+mtree_mutate(
+    name = "exclude_with_strip_prefix_and_package_dir",
+    excludes = [
+        "tar/tests/generated.txt",
+    ],
+    mtree = "mtree23",
+    package_dir = "usr/local/bin",
+    strip_prefix = package_name(),
+)
+
+tar(
+    name = "tar_excludes_with_transformations",
+    srcs = [
+        "src_file",
+        ":fixture1",
+    ],
+    out = "25.tar",
+    mtree = "exclude_with_strip_prefix_and_package_dir",
+)
+
+assert_tar_listing(
+    name = "test25_excludes_with_strip_prefix",
+    actual = "tar_excludes_with_transformations",
+    expected = [
+        "drwxr-xr-x  0 0      0           0 Jan  1  2000 usr/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2000 usr/local/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2000 usr/local/bin/",
+        "-rwxr-xr-x  0 0      0          21 Jan  1  2023 usr/local/bin/src_file",
+    ],
+)
