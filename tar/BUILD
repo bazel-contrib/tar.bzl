@@ -11,6 +11,7 @@ bool_flag(
 config_setting(
     name = "compilation_mode.opt",
     values = {"compilation_mode": "opt"},
+    visibility = ["//visibility:public"],
 )
 
 bzl_library(
