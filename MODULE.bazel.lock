@@ -212,6 +212,19 @@
   },
   "selectedYankedVersions": {},
   "moduleExtensions": {
+    "//tar/tests:symlink_repo.bzl%test_fixtures": {
+      "general": {
+        "bzlTransitiveDigest": "OFl0qP9c1YF/Cb/6AEkI6JfwoIx5lQZ8dZoYOEyDnK8=",
+        "usagesDigest": "dM+bcEa9gRKud+y1r8OqldlmuGCCFew8WsAtsq39LYU=",
+        "recordedInputs": [],
+        "generatedRepoSpecs": {
+          "tar_bzl_test_symlink_repo": {
+            "repoRuleId": "@@//tar/tests:symlink_repo.bzl%symlink_repo",
+            "attributes": {}
+          }
+        }
+      }
+    },
     "@@buildifier_prebuilt+//:defs.bzl%buildifier_prebuilt_deps_extension": {
       "general": {
         "bzlTransitiveDigest": "HYQPUyAYPNnJLXhodkPm4VbTY6gGVWXcBir9+m2HKwo=",

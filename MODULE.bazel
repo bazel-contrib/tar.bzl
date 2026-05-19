@@ -19,3 +19,6 @@ toolchains = use_extension("//tar:extensions.bzl", "toolchains")
 use_repo(toolchains, "bsd_tar_toolchains")
 
 register_toolchains("@bsd_tar_toolchains//:all")
+
+_test_fixtures = use_extension("//tar/tests:symlink_repo.bzl", "test_fixtures", dev_dependency = True)
+use_repo(_test_fixtures, "tar_bzl_test_symlink_repo")

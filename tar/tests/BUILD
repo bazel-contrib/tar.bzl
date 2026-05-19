@@ -6,6 +6,7 @@ load("@bazel_skylib//rules:write_file.bzl", "write_file")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@tar.bzl", "mtree_mutate", "mtree_spec", "tar")
 load(":asserts.bzl", "assert_tar_listing", "assert_unused_listing")
+load(":cross_repo_symlink.bzl", "cross_repo_symlink")
 load(":directory.bzl", "directory")
 load(":node_modules_tree.bzl", "node_modules_tree")
 load(":runfiles_symlinks.bzl", "runfiles_symlinks")
@@ -863,5 +864,155 @@ assert_tar_listing(
         "drwxr-xr-x  0 nonroot nonroot     0 Jan  1  2000 home/nonroot/",
         "drwxr-xr-x  0 nonroot nonroot     0 Jan  1  2000 home/nonroot/dir/",
         "-rwxr-xr-x  0 1000    1000       21 Jan  1  2023 home/nonroot/dir/src_file",
+    ],
+)
+
+#############
+# Example 23: preserve_symlinks across a repository boundary — a `ctx.actions.symlink`
+# whose target is a file from another repo. The symlink's content path is under
+# `bazel-out/.../bin/...` and the target resolves through `external/<repo>/...`.
+cross_repo_symlink(
+    name = "e23_to_external",
+    target = "@bazel_skylib//:LICENSE",
+)
+
+mtree_spec(
+    name = "mtree23",
+    srcs = [":e23_to_external"],
+)
+
+mtree_mutate(
+    name = "resolve_symlinks23",
+    srcs = [":e23_to_external"],
+    mtree = ":mtree23",
+    preserve_symlinks = True,
+)
+
+tar(
+    name = "tar23",
+    srcs = [":e23_to_external"],
+    out = "23.tar",
+    mtree = ":resolve_symlinks23",
+)
+
+assert_tar_listing(
+    name = "test23_symlink_out_to_external_repo",
+    actual = ":tar23",
+    expected = [
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/",
+        "lrwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/e23_to_external_link -> ../../LICENSE",
+        "-rwxr-xr-x  0 0      0       11358 Jan  1  2023 LICENSE",
+    ],
+)
+
+#############
+# Example 24: preserve_symlinks for a symlink that lives entirely inside an external
+# repository. The fixture `@tar_bzl_test_symlink_repo` contains a real on-disk
+# symlink (alias -> real); both files' mtree content paths are `external/<repo>/...`
+# and the awk classifier must follow the chain back to an external/<repo>/...
+# canonical form for the symlink_map lookup.
+mtree_spec(
+    name = "mtree24",
+    srcs = [
+        "@tar_bzl_test_symlink_repo//:alias",
+        "@tar_bzl_test_symlink_repo//:real",
+    ],
+)
+
+mtree_mutate(
+    name = "resolve_symlinks24",
+    srcs = [
+        "@tar_bzl_test_symlink_repo//:alias",
+        "@tar_bzl_test_symlink_repo//:real",
+    ],
+    mtree = ":mtree24",
+    preserve_symlinks = True,
+)
+
+tar(
+    name = "tar24",
+    srcs = [
+        "@tar_bzl_test_symlink_repo//:alias",
+        "@tar_bzl_test_symlink_repo//:real",
+    ],
+    out = "24.tar",
+    mtree = ":resolve_symlinks24",
+)
+
+assert_tar_listing(
+    name = "test24_symlink_within_external_repo",
+    actual = ":tar24",
+    expected = [
+        "lrwxr-xr-x  0 0      0           0 Jan  1  2023 alias -> real",
+        "-rwxr-xr-x  0 0      0          13 Jan  1  2023 real",
+    ],
+)
+
+#############
+# Example 25: preserve_symlinks for relative symlinks checked into the
+# source tree. Exercises three shapes:
+#   * `sub/link -> ../target.txt`     (parent-traversal)
+#   * `sibling_link -> target.txt`    (same-directory)
+#   * `child_link -> sub_with_real/file` (child path)
+# All three end in `readlink` returning a relative string; the awk must
+# accept any relative target, not just ones containing `../`. Plus the
+# same suffix-match path-walk we use for sandbox→execroot, since Bazel
+# symlinks source inputs into execroot the same way it does sandbox
+# inputs. Gated off Windows because git only preserves symlinks when
+# `core.symlinks=true` is set.
+_E25_SRCS = [
+    "source_symlink_data/target.txt",
+    "source_symlink_data/sub/link",
+    "source_symlink_data/sibling_link",
+    "source_symlink_data/child_link",
+    "source_symlink_data/sub_with_real/file",
+]
+
+mtree_spec(
+    name = "mtree25",
+    srcs = _E25_SRCS,
+    target_compatible_with = select({
+        "@platforms//os:windows": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+)
+
+mtree_mutate(
+    name = "resolve_symlinks25",
+    srcs = _E25_SRCS,
+    mtree = ":mtree25",
+    preserve_symlinks = True,
+    target_compatible_with = select({
+        "@platforms//os:windows": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+)
+
+tar(
+    name = "tar25",
+    srcs = _E25_SRCS,
+    out = "25.tar",
+    mtree = ":resolve_symlinks25",
+    target_compatible_with = select({
+        "@platforms//os:windows": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+)
+
+assert_tar_listing(
+    name = "test25_source_tree_symlink",
+    actual = ":tar25",
+    expected = [
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/source_symlink_data/",
+        "-rwxr-xr-x  0 0      0          15 Jan  1  2023 tar/tests/source_symlink_data/target.txt",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/source_symlink_data/sub/",
+        "lrwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/source_symlink_data/sub/link -> ../target.txt",
+        "lrwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/source_symlink_data/sibling_link -> target.txt",
+        "lrwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/source_symlink_data/child_link -> sub_with_real/file",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/source_symlink_data/sub_with_real/",
+        "-rwxr-xr-x  0 0      0          13 Jan  1  2023 tar/tests/source_symlink_data/sub_with_real/file",
     ],
 )
