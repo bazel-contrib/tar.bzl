@@ -133,6 +133,10 @@ Possible values:
         values = [-1, 0, 1],
     ),
     "_compute_unused_inputs_flag": attr.label(default = Label("//tar:tar_compute_unused_inputs")),
+    "_validate_mtree_awk": attr.label(
+        default = Label("@tar.bzl//tar/private:validate_mtree.awk"),
+        allow_single_file = True,
+    ),
 }
 
 _mtree_attrs = {
@@ -366,6 +370,30 @@ def _configured_unused_inputs_file(ctx, srcs, keep):
 
     return unused_inputs
 
+def _configured_mtree_validation_file(ctx):
+    """Validate mtree file entries required for deterministic tar output.
+
+    Validates that each `type=file` mtree entry includes uid/gid/time/mode.
+    Returns a marker file produced when validation succeeds.
+    """
+    validated = ctx.actions.declare_file(ctx.attr.name + ".mtree.validated")
+    ctx.actions.run_shell(
+        outputs = [validated],
+        inputs = [ctx.file.mtree, ctx.file._validate_mtree_awk],
+        command = '''
+            set -e
+            awk -f "$VALIDATE_MTREE_AWK" "$MTREE"
+            touch "$VALIDATED"
+        ''',
+        env = {
+            "MTREE": ctx.file.mtree.path,
+            "VALIDATED": validated.path,
+            "VALIDATE_MTREE_AWK": ctx.file._validate_mtree_awk.path,
+        },
+        mnemonic = "ValidateMtree",
+    )
+    return validated
+
 # TODO(3.0): Access field directly after minimum bazel_compatibility advanced to or beyond v7.0.0.
 def _repo_mapping_manifest(files_to_run):
     return getattr(files_to_run, "repo_mapping_manifest", None)
@@ -394,6 +422,7 @@ def _tar_impl(ctx):
 
     args.add(ctx.file.mtree, format = "@%s")
     inputs.append(ctx.file.mtree)
+    validation_file = _configured_mtree_validation_file(ctx)
 
     repo_mappings = [
         _repo_mapping_manifest(src[DefaultInfo].files_to_run)
@@ -435,17 +464,19 @@ def _tar_impl(ctx):
         tools = [ctx.executable.compressor] if ctx.executable.compressor else [],
     )
 
-    # TODO(3.0): Always return a list of providers.
     default_info = DefaultInfo(files = depset([out]), runfiles = ctx.runfiles([out]))
+    output_groups = {
+        # Exposed for tests and explicit validation requests.
+        "_validation": depset([validation_file]),
+    }
     if unused_inputs_file:
-        return [
-            default_info,
-            OutputGroupInfo(
-                # exposed for testing
-                _unused_inputs_file = depset([unused_inputs_file]),
-            ),
-        ]
-    return default_info
+        # exposed for testing
+        output_groups["_unused_inputs_file"] = depset([unused_inputs_file])
+
+    return [
+        default_info,
+        OutputGroupInfo(**output_groups),
+    ]
 
 def _mtree_line(file, type, content = None, uid = "0", gid = "0", time = "1672560000", mode = "0755", nlink = "1"):
     if type == "dir" and not file.endswith("/"):
