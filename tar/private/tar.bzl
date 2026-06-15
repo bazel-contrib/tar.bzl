@@ -133,6 +133,11 @@ Possible values:
         values = [-1, 0, 1],
     ),
     "_compute_unused_inputs_flag": attr.label(default = Label("//tar:tar_compute_unused_inputs")),
+    "_awk": attr.label(
+        default = "@gawk",
+        cfg = "exec",
+        executable = True,
+    ),
     "_validate_mtree_awk": attr.label(
         default = Label("@tar.bzl//tar/private:validate_mtree.awk"),
         allow_single_file = True,
@@ -380,12 +385,14 @@ def _configured_mtree_validation_file(ctx):
     ctx.actions.run_shell(
         outputs = [validated],
         inputs = [ctx.file.mtree, ctx.file._validate_mtree_awk],
+        tools = [ctx.executable._awk],
         command = '''
             set -e
-            awk -f "$VALIDATE_MTREE_AWK" "$MTREE"
+            "$AWK" -f "$VALIDATE_MTREE_AWK" "$MTREE"
             touch "$VALIDATED"
         ''',
         env = {
+            "AWK": ctx.executable._awk.path,
             "MTREE": ctx.file.mtree.path,
             "VALIDATED": validated.path,
             "VALIDATE_MTREE_AWK": ctx.file._validate_mtree_awk.path,
