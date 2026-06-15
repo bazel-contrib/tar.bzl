@@ -138,8 +138,8 @@ Possible values:
         cfg = "exec",
         executable = True,
     ),
-    "_validate_mtree_awk": attr.label(
-        default = Label("@tar.bzl//tar/private:validate_mtree.awk"),
+    "_validate_reproducibility_mtree_awk": attr.label(
+        default = Label("@tar.bzl//tar/private:validate_reproducibility_mtree.awk"),
         allow_single_file = True,
     ),
 }
@@ -375,29 +375,28 @@ def _configured_unused_inputs_file(ctx, srcs, keep):
 
     return unused_inputs
 
-def _configured_mtree_validation_file(ctx):
-    """Validate mtree file entries required for deterministic tar output.
+def _configured_mtree_reproducibility_validation_file(ctx):
+    """Validate mtree file entries required for reproducible tar output.
 
     Validates that each `type=file` mtree entry includes uid/gid/time/mode.
     Returns a marker file produced when validation succeeds.
     """
-    validated = ctx.actions.declare_file(ctx.attr.name + ".mtree.validated")
+    validated = ctx.actions.declare_file(ctx.attr.name + ".mtree.reproducibility.validated")
     ctx.actions.run_shell(
         outputs = [validated],
-        inputs = [ctx.file.mtree, ctx.file._validate_mtree_awk],
+        inputs = [ctx.file.mtree, ctx.file._validate_reproducibility_mtree_awk],
         tools = [ctx.executable._awk],
         command = '''
             set -e
-            "$AWK" -f "$VALIDATE_MTREE_AWK" "$MTREE"
-            touch "$VALIDATED"
+            "$AWK" -v validated="$VALIDATED" -f "$VALIDATE_REPRODUCIBILITY_MTREE_AWK" "$MTREE"
         ''',
         env = {
             "AWK": ctx.executable._awk.path,
             "MTREE": ctx.file.mtree.path,
             "VALIDATED": validated.path,
-            "VALIDATE_MTREE_AWK": ctx.file._validate_mtree_awk.path,
+            "VALIDATE_REPRODUCIBILITY_MTREE_AWK": ctx.file._validate_reproducibility_mtree_awk.path,
         },
-        mnemonic = "ValidateMtree",
+        mnemonic = "ValidateMtreeReproducibility",
     )
     return validated
 
@@ -429,7 +428,6 @@ def _tar_impl(ctx):
 
     args.add(ctx.file.mtree, format = "@%s")
     inputs.append(ctx.file.mtree)
-    validation_file = _configured_mtree_validation_file(ctx)
 
     repo_mappings = [
         _repo_mapping_manifest(src[DefaultInfo].files_to_run)
@@ -474,7 +472,7 @@ def _tar_impl(ctx):
     default_info = DefaultInfo(files = depset([out]), runfiles = ctx.runfiles([out]))
     output_groups = {
         # Exposed for tests and explicit validation requests.
-        "_validation": depset([validation_file]),
+        "_validation": depset([_configured_mtree_reproducibility_validation_file(ctx)]),
     }
     if unused_inputs_file:
         # exposed for testing

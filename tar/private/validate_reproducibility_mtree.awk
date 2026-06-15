@@ -82,4 +82,11 @@ BEGIN { bad = 0 }
 }
 
 # Non-zero exit causes the Bazel validation action to fail.
-END { exit bad }
+END {
+    if (bad) {
+        exit 1
+    }
+    print "ok" > validated
+    close(validated)
+    exit 0
+}
