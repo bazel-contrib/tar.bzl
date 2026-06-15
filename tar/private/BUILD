@@ -4,6 +4,7 @@ exports_files(
     [
         "default.awk",
         "modify_mtree.awk",
+        "normalize_mtree.awk",
         "preserve_symlinks.awk",
     ],
     visibility = ["//visibility:public"],

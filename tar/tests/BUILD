@@ -865,3 +865,52 @@ assert_tar_listing(
         "-rwxr-xr-x  0 1000    1000       21 Jan  1  2023 home/nonroot/dir/src_file",
     ],
 )
+
+#############
+# Example 23: inline mtree file entries missing attrs are normalized.
+tar(
+    name = "tar23_inline_missing_attrs",
+    srcs = ["src_file"],
+    out = "23.tar",
+    mtree = [
+        "inline/missing/all type=file content={}/src_file".format(package_name()),
+        "inline/partial/mode uid=123 type=file content={}/src_file".format(package_name()),
+    ],
+)
+
+assert_tar_listing(
+    name = "test23_inline_missing_attrs",
+    actual = ":tar23_inline_missing_attrs",
+    expected = [
+        "-rwxr-xr-x  0 0      0          21 Jan  1  2023 inline/missing/all",
+        "-rwxr-xr-x  0 123    0          21 Jan  1  2023 inline/partial/mode",
+    ],
+)
+
+#############
+# Example 24: file-based mtree entries missing attrs are normalized.
+write_file(
+    name = "mtree24_file",
+    out = "24.mtree",
+    content = [
+        "#mtree",
+        "file/input/all_missing type=file content=tar/tests/src_file",
+        "file/input/partial gid=500 type=file content=tar/tests/src_file",
+    ],
+)
+
+tar(
+    name = "tar24_file_missing_attrs",
+    srcs = ["src_file"],
+    out = "24.tar",
+    mtree = ":mtree24_file",
+)
+
+assert_tar_listing(
+    name = "test24_file_missing_attrs",
+    actual = ":tar24_file_missing_attrs",
+    expected = [
+        "-rwxr-xr-x  0 0      0          21 Jan  1  2023 file/input/all_missing",
+        "-rwxr-xr-x  0 0      500        21 Jan  1  2023 file/input/partial",
+    ],
+)

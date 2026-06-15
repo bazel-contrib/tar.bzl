@@ -63,11 +63,45 @@ load("@bazel_lib//lib:utils.bzl", "propagate_common_rule_attributes")
 load("@bazel_skylib//lib:partial.bzl", "partial")
 load("@bazel_skylib//lib:types.bzl", "types")
 load("//tar/private:tar.bzl", _tar = "tar", _tar_lib = "tar_lib")
-load(":mtree.bzl", "mtree_spec")
+load(":mtree.bzl", "mtree_mutate", "mtree_spec")
 
 tar_rule = _tar
 
 tar_lib = _tar_lib
+
+def _has_mtree_keyword(entry, key):
+    for part in entry.split(" "):
+        if part.startswith(key + "="):
+            return True
+    return False
+
+def _normalize_inline_mtree_line(entry):
+    parts = entry.split(" ")
+    if entry.startswith("#"):
+        return entry
+    if "type=file" not in parts:
+        return entry
+
+    normalized = entry
+    if not _has_mtree_keyword(normalized, "uid"):
+        normalized += " uid=0"
+    if not _has_mtree_keyword(normalized, "gid"):
+        normalized += " gid=0"
+    if not _has_mtree_keyword(normalized, "time"):
+        normalized += " time=1672560000"
+    if not _has_mtree_keyword(normalized, "mode"):
+        normalized += " mode=0755"
+    return normalized
+
+def _normalize_inline_mtree(lines):
+    return [_normalize_inline_mtree_line(line) for line in lines]
+
+def _label_in_srcs(label, srcs):
+    label_str = str(label)
+    for src in srcs:
+        if str(src) == label_str:
+            return True
+    return False
 
 def tar(name, mtree = "auto", mutate = None, include_runfiles = None, stamp = 0, **kwargs):
     """Wrapper macro around [`tar_rule`](#tar_rule).
@@ -135,6 +169,7 @@ def tar(name, mtree = "auto", mutate = None, include_runfiles = None, stamp = 0,
             else:
                 fail("mutate must be a partial")
     elif types.is_list(mtree):
+        normalized_lines = _normalize_inline_mtree(mtree)
         expand_template(
             name = mtree_target,
             out = "{}.txt".format(mtree_target),
@@ -144,13 +179,24 @@ def tar(name, mtree = "auto", mutate = None, include_runfiles = None, stamp = 0,
             substitutions = {
                 # expand_template only expands strings in "substitutions" dict. Here
                 # we expand mtree and then replace the template with expanded mtree.
-                "{content}": "\n".join(mtree),
+                "{content}": "\n".join(normalized_lines),
             },
             stamp = stamp,
             **propagate_common_rule_attributes(kwargs)
         )
     else:
-        mtree_target = mtree
+        srcs = kwargs.get("srcs", [])
+        if _label_in_srcs(mtree, srcs):
+            mtree_target = mtree
+        else:
+            normalized_mtree_target = "{}__normalized".format(name)
+            mtree_mutate(
+                name = normalized_mtree_target,
+                mtree = mtree,
+                awk_script = Label("@tar.bzl//tar/private:normalize_mtree.awk"),
+                **propagate_common_rule_attributes(kwargs)
+            )
+            mtree_target = normalized_mtree_target
 
     tar_rule(
         name = name,
