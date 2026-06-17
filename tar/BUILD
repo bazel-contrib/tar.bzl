@@ -8,6 +8,14 @@ bool_flag(
     visibility = ["//visibility:public"],
 )
 
+bool_flag(
+    name = "validate_reproducibility",
+    # Opt-in: when enabled, the tar rule creates a validation action that
+    # checks the mtree for reproducible file metadata.
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
 config_setting(
     name = "compilation_mode.opt",
     values = {"compilation_mode": "opt"},

@@ -94,6 +94,10 @@ def tar(name, mtree = "auto", mutate = None, include_runfiles = None, stamp = 0,
     For the format of a line, see "There are four types of lines in a specification" on the man page for BSD mtree,
     https://man.freebsd.org/cgi/man.cgi?mtree(8)
 
+    When you supply your own mtree lines, enable the `--@tar.bzl//tar:validate_reproducibility`
+    flag to add a validation action that checks every `type=file` entry sets `uid`, `gid`,
+    `time`, and `mode`, which are required for reproducible tar output.
+
     3. `mtree` may be a label of a file containing the specification lines.
 
     Args:

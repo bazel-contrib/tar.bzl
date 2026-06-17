@@ -133,6 +133,7 @@ Possible values:
         values = [-1, 0, 1],
     ),
     "_compute_unused_inputs_flag": attr.label(default = Label("//tar:tar_compute_unused_inputs")),
+    "_validate_reproducibility_flag": attr.label(default = Label("//tar:validate_reproducibility")),
     "_awk": attr.label(
         default = "@gawk",
         cfg = "exec",
@@ -470,10 +471,11 @@ def _tar_impl(ctx):
     )
 
     default_info = DefaultInfo(files = depset([out]), runfiles = ctx.runfiles([out]))
-    output_groups = {
+    output_groups = {}
+    if ctx.attr._validate_reproducibility_flag[BuildSettingInfo].value:
+        # Opt-in via the //tar:validate_reproducibility flag.
         # Exposed for tests and explicit validation requests.
-        "_validation": depset([_configured_mtree_reproducibility_validation_file(ctx)]),
-    }
+        output_groups["_validation"] = depset([_configured_mtree_reproducibility_validation_file(ctx)])
     if unused_inputs_file:
         # exposed for testing
         output_groups["_unused_inputs_file"] = depset([unused_inputs_file])
