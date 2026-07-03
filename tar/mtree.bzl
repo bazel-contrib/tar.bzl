@@ -50,6 +50,7 @@ def mtree_mutate(
         mtime = None,
         owner = None,
         ownername = None,
+        excludes = None,
         awk_script = Label("@tar.bzl//tar/private:default.awk"),
         script_args = {},
         includes = None,
@@ -66,6 +67,7 @@ def mtree_mutate(
         mtime: new modification time for all entries.
         owner: new uid for all entries.
         ownername: new uname for all entries.
+        excludes: list of paths to exclude from the tar. Paths are matched exactly against the original paths before any strip_prefix or package_dir transformations are applied.
         awk_script: awk script for mtree mutation. Override to provide a custom script; use @include "default" to compose with the built-in pipeline.
         script_args: extra key=value variables passed via --assign. Available in awk_script and any includes.
         includes: additional awk scripts appended after awk_script. A wrapper is generated that @include-s awk_script then each script here in order.
@@ -87,6 +89,7 @@ def mtree_mutate(
         mtime = str(mtime) if mtime else None,
         owner = owner,
         ownername = ownername,
+        excludes = excludes,
         awk_script = awk_script,
         script_args = script_args,
         includes = includes or [],
