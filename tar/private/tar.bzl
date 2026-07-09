@@ -133,6 +133,16 @@ Possible values:
         values = [-1, 0, 1],
     ),
     "_compute_unused_inputs_flag": attr.label(default = Label("//tar:tar_compute_unused_inputs")),
+    "_validate_reproducibility_flag": attr.label(default = Label("//tar:validate_reproducibility")),
+    "_awk": attr.label(
+        default = "@gawk",
+        cfg = "exec",
+        executable = True,
+    ),
+    "_validate_reproducibility_mtree_awk": attr.label(
+        default = Label("@tar.bzl//tar/private:validate_reproducibility_mtree.awk"),
+        allow_single_file = True,
+    ),
 }
 
 _mtree_attrs = {
@@ -366,6 +376,31 @@ def _configured_unused_inputs_file(ctx, srcs, keep):
 
     return unused_inputs
 
+def _configured_mtree_reproducibility_validation_file(ctx):
+    """Validate mtree file entries required for reproducible tar output.
+
+    Validates that each `type=file` mtree entry includes uid/gid/time/mode.
+    Returns a marker file produced when validation succeeds.
+    """
+    validated = ctx.actions.declare_file(ctx.attr.name + ".mtree.reproducibility.validated")
+    ctx.actions.run_shell(
+        outputs = [validated],
+        inputs = [ctx.file.mtree, ctx.file._validate_reproducibility_mtree_awk],
+        tools = [ctx.executable._awk],
+        command = '''
+            set -e
+            "$AWK" -v validated="$VALIDATED" -f "$VALIDATE_REPRODUCIBILITY_MTREE_AWK" "$MTREE"
+        ''',
+        env = {
+            "AWK": ctx.executable._awk.path,
+            "MTREE": ctx.file.mtree.path,
+            "VALIDATED": validated.path,
+            "VALIDATE_REPRODUCIBILITY_MTREE_AWK": ctx.file._validate_reproducibility_mtree_awk.path,
+        },
+        mnemonic = "ValidateMtreeReproducibility",
+    )
+    return validated
+
 # TODO(3.0): Access field directly after minimum bazel_compatibility advanced to or beyond v7.0.0.
 def _repo_mapping_manifest(files_to_run):
     return getattr(files_to_run, "repo_mapping_manifest", None)
@@ -435,17 +470,20 @@ def _tar_impl(ctx):
         tools = [ctx.executable.compressor] if ctx.executable.compressor else [],
     )
 
-    # TODO(3.0): Always return a list of providers.
     default_info = DefaultInfo(files = depset([out]), runfiles = ctx.runfiles([out]))
+    output_groups = {}
+    if ctx.attr._validate_reproducibility_flag[BuildSettingInfo].value:
+        # Opt-in via the //tar:validate_reproducibility flag.
+        # Exposed for tests and explicit validation requests.
+        output_groups["_validation"] = depset([_configured_mtree_reproducibility_validation_file(ctx)])
     if unused_inputs_file:
-        return [
-            default_info,
-            OutputGroupInfo(
-                # exposed for testing
-                _unused_inputs_file = depset([unused_inputs_file]),
-            ),
-        ]
-    return default_info
+        # exposed for testing
+        output_groups["_unused_inputs_file"] = depset([unused_inputs_file])
+
+    return [
+        default_info,
+        OutputGroupInfo(**output_groups),
+    ]
 
 def _mtree_line(file, type, content = None, uid = "0", gid = "0", time = "1672560000", mode = "0755", nlink = "1"):
     if type == "dir" and not file.endswith("/"):
