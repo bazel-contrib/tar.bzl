@@ -65,8 +65,7 @@
         if (ownername != "") ownership_attrs = ownership_attrs " uname=" ownername
         if (groupname != "") ownership_attrs = ownership_attrs " gname=" groupname
 
-        # Ensure parent directories exist, but only the first time — every
-        # subsequent line reaching this pipeline already has them available.
+        # First ensure parent directories exist
         if (!package_dir_dirs_emitted) {
             split(package_dir, dirs, "/")
             path = ""
