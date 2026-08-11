@@ -1018,3 +1018,44 @@ assert_tar_listing(
         "-rwxr-xr-x  0 0      0          13 Jan  1  2023 tar/tests/source_symlink_data/sub_with_real/file",
     ],
 )
+
+#############
+# Example 26: package_dir ancestors must be emitted before real nested
+# source directories, even when those directories precede any file entry
+# in the underlying mtree.
+# Regression test for https://github.com/bazel-contrib/tar.bzl/issues/123.
+directory(
+    name = "nested_dir26",
+    files = ["subdir/nested.txt"],
+)
+
+mtree_spec(
+    name = "mtree26",
+    srcs = [":nested_dir26"],
+)
+
+mtree_mutate(
+    name = "mutate26",
+    mtree = ":mtree26",
+    package_dir = "home/app",
+    strip_prefix = "tar/tests",
+)
+
+tar(
+    name = "tar26",
+    srcs = [":nested_dir26"],
+    out = "26.tar",
+    mtree = ":mutate26",
+)
+
+assert_tar_listing(
+    name = "test26_package_dir_before_nested_dirs",
+    actual = ":tar26",
+    expected = [
+        "drwxr-xr-x  0 0      0           0 Jan  1  2000 home/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2000 home/app/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 home/app/nested_dir26/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 home/app/nested_dir26/subdir/",
+        "-rwxr-xr-x  0 0      0          28 Jan  1  2023 home/app/nested_dir26/subdir/nested.txt",
+    ],
+)
