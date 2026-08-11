@@ -65,10 +65,9 @@
         if (ownername != "") ownership_attrs = ownership_attrs " uname=" ownername
         if (groupname != "") ownership_attrs = ownership_attrs " gname=" groupname
 
-        # First ensure parent directories exist. Once package_dir itself has been
-        # seen, every ancestor has too, so skip re-splitting/re-walking it on
-        # every subsequent line.
-        if (!(package_dir in seen_dirs)) {
+        # Ensure parent directories exist, but only the first time — every
+        # subsequent line reaching this pipeline already has them available.
+        if (!package_dir_dirs_emitted) {
             split(package_dir, dirs, "/")
             path = ""
             for (i = 1; i <= length(dirs); i++) {
@@ -77,12 +76,9 @@
                 } else {
                     path = path "/" dirs[i]
                 }
-                # Only print if we haven't seen this directory before
-                if (!(path in seen_dirs)) {
-                    print path " type=dir mode=0755 time=" default_time ownership_attrs
-                    seen_dirs[path] = 1
-                }
+                print path " type=dir mode=0755 time=" default_time ownership_attrs
             }
+            package_dir_dirs_emitted = 1
         }
         sub(/^/, package_dir "/")
     }
