@@ -8,7 +8,15 @@ normalise the result back to an `external/<repo>/...` form.
 """
 
 def _impl(rctx):
-    rctx.file("BUILD.bazel", content = "exports_files([\"real\", \"alias\"])\n")
+    rctx.file("BUILD.bazel", content = """exports_files(["real", "alias"])
+
+genrule(
+    name = "generated",
+    outs = ["generated.txt"],
+    cmd = "echo 'generated content' > $@",
+    visibility = ["//visibility:public"],
+)
+""")
     rctx.file("real", content = "real content\n")
     rctx.symlink(rctx.path("real"), "alias")
 
