@@ -1,0 +1,3 @@
+#mtree
+opt/ type=dir mode=0755 time=946699200
+opt/src_file uid=0 gid=0 time=1672560000 mode=0755 type=file nlink=1 content=tar/tests/src_file

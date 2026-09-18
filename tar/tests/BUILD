@@ -1197,3 +1197,38 @@ assert_tar_listing(
         "-rwxr-xr-x  0 0      0          21 Jan  1  2023 foo/baz",
     ],
 )
+
+#############
+# Example 30: comments and blank lines in a hand-written spec survive mtree_mutate.
+# `mtree_spec` never emits either, but hand-written specs commonly start with the
+# `#mtree` header and may contain blank lines. Before this was handled, `package_dir`
+# prefixed both like any other path, producing `opt/#mtree` and a keyword-less `opt/`
+# line, and bsdtar failed with "Unrecognized archive format". The header must be
+# preserved in place, blank lines dropped, and the archive must build.
+mtree_mutate(
+    name = "mutate30",
+    mtree = "header30.mtree",
+    package_dir = "opt",
+)
+
+diff_test(
+    name = "test30_spec",
+    file1 = ":mutate30",
+    file2 = "expected30.mtree",
+)
+
+tar(
+    name = "tar30",
+    srcs = ["src_file"],
+    out = "30.tar",
+    mtree = ":mutate30",
+)
+
+assert_tar_listing(
+    name = "test30_comments_and_blank_lines",
+    actual = ":tar30",
+    expected = [
+        "drwxr-xr-x  0 0      0           0 Jan  1  2000 opt/",
+        "-rwxr-xr-x  0 0      0          21 Jan  1  2023 opt/src_file",
+    ],
+)

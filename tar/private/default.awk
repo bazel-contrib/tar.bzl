@@ -1,5 +1,12 @@
 # Default mtree mutation pipeline. Reusable via: @include "default"
 
+# Blank lines carry no entry and are dropped. Comment lines (`#mtree` headers and the like)
+# are not paths, so none of the transformations below apply to them; they are passed through
+# untouched. Without this, `package_dir` would prefix them into bogus entries such as
+# `opt/#mtree` and `opt/`, which bsdtar rejects with "Unrecognized archive format".
+/^[[:space:]]*$/ { next }
+/^#/ { print; next }
+
 {
     if (strip_prefix != "") {
         if ($1 == strip_prefix) {
