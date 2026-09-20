@@ -1059,3 +1059,141 @@ assert_tar_listing(
         "-rwxr-xr-x  0 0      0          28 Jan  1  2023 home/app/nested_dir26/subdir/nested.txt",
     ],
 )
+
+#############
+# Example 27: package_dir-synthesized parent directories are full mtree entries.
+# A slash-free line such as `opt` is a "relative" entry that changes directory, so
+# a second spec appended after it would have its own `opt` nested as `opt/opt/`.
+# Here two specs relocate different files under the same `opt/sdk` and are simply
+# concatenated; the archive must contain `opt/sdk/` once and no `opt/opt/`.
+mtree_spec(
+    name = "mtree27a",
+    srcs = ["src_file"],
+)
+
+mtree_mutate(
+    name = "mutate27a",
+    mtree = ":mtree27a",
+    package_dir = "opt/sdk",
+    strip_prefix = "tar/tests",
+)
+
+mtree_spec(
+    name = "mtree27b",
+    srcs = [":fixture1"],
+)
+
+mtree_mutate(
+    name = "mutate27b",
+    mtree = ":mtree27b",
+    package_dir = "opt/sdk",
+    strip_prefix = "tar/tests",
+)
+
+genrule(
+    name = "mtree27",
+    srcs = [
+        ":mutate27a",
+        ":mutate27b",
+    ],
+    outs = ["27.mtree"],
+    cmd = "cat $(SRCS) > $@",
+)
+
+tar(
+    name = "tar27",
+    srcs = [
+        "src_file",
+        ":fixture1",
+    ],
+    out = "27.tar",
+    mtree = ":mtree27",
+)
+
+assert_tar_listing(
+    name = "test27_package_dir_full_entries",
+    actual = ":tar27",
+    expected = [
+        "drwxr-xr-x  0 0      0           0 Jan  1  2000 opt/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2000 opt/sdk/",
+        "-rwxr-xr-x  0 0      0          21 Jan  1  2023 opt/sdk/src_file",
+        "-rwxr-xr-x  0 0      0           7 Jan  1  2023 opt/sdk/generated.txt",
+    ],
+)
+
+#############
+# Example 28: leading and trailing slashes on `strip_prefix` and `package_dir` are ignored.
+# Before this was normalized, `package_dir = "opt/sdk/"` produced a bogus `opt/sdk//`
+# directory, `strip_prefix = "tar/tests/"` stripped nothing, and `strip_prefix = "/tar/tests"`
+# discarded every entry. All three spellings must now produce the canonical spec.
+mtree_spec(
+    name = "mtree28",
+    srcs = ["src_file"],
+)
+
+mtree_mutate(
+    name = "mutate28_canonical",
+    mtree = ":mtree28",
+    package_dir = "opt/sdk",
+    strip_prefix = "tar/tests",
+)
+
+mtree_mutate(
+    name = "mutate28_trailing_slash",
+    mtree = ":mtree28",
+    package_dir = "opt/sdk/",
+    strip_prefix = "tar/tests/",
+)
+
+mtree_mutate(
+    name = "mutate28_leading_slash",
+    mtree = ":mtree28",
+    package_dir = "/opt/sdk",
+    strip_prefix = "/tar/tests",
+)
+
+[
+    diff_test(
+        name = "test28_{}".format(variant),
+        file1 = ":mutate28_{}".format(variant),
+        file2 = "expected28.mtree",
+    )
+    for variant in [
+        "canonical",
+        "trailing_slash",
+        "leading_slash",
+    ]
+]
+
+#############
+# Example 29: mtree_mutate writes every directory entry as a "full" entry with a trailing slash.
+# The hand-written input is the repro from https://github.com/bazel-contrib/bazel-lib/issues/851:
+# a bare `foo` directory line followed by a top-level file `bar`. mtree treats the bare line as a
+# "relative" entry that changes directory, so without normalization `bar` ends up at `foo/bar`.
+mtree_mutate(
+    name = "mutate29",
+    mtree = "relative29.mtree",
+)
+
+diff_test(
+    name = "test29_spec",
+    file1 = ":mutate29",
+    file2 = "expected29.mtree",
+)
+
+tar(
+    name = "tar29",
+    srcs = ["src_file"],
+    out = "29.tar",
+    mtree = ":mutate29",
+)
+
+assert_tar_listing(
+    name = "test29_relative_entries",
+    actual = ":tar29",
+    expected = [
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 foo/",
+        "-rwxr-xr-x  0 0      0          21 Jan  1  2023 bar",
+        "-rwxr-xr-x  0 0      0          21 Jan  1  2023 foo/baz",
+    ],
+)

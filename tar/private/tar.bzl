@@ -630,6 +630,14 @@ def _mtree_impl(ctx):
 
     return DefaultInfo(files = depset([out]), runfiles = ctx.runfiles([out]))
 
+def _normalize_prefix(path):
+    """Strip leading and trailing slashes from a directory prefix.
+
+    The awk pipeline compares and joins prefixes with a single `/`, so it must see `a/b`,
+    never `/a/b` or `a/b/`, regardless of how the user spelled the attribute.
+    """
+    return path.strip("/") if path else ""
+
 def _mtree_mutate_impl(ctx):
     srcs_runfiles = [
         src[DefaultInfo].default_runfiles.files
@@ -654,10 +662,12 @@ def _mtree_mutate_impl(ctx):
         assignments["group"] = ctx.attr.group
     if ctx.attr.groupname:
         assignments["groupname"] = ctx.attr.groupname
-    if ctx.attr.strip_prefix:
-        assignments["strip_prefix"] = ctx.attr.strip_prefix
-    if ctx.attr.package_dir:
-        assignments["package_dir"] = ctx.attr.package_dir.lstrip("/")
+    strip_prefix = _normalize_prefix(ctx.attr.strip_prefix)
+    if strip_prefix:
+        assignments["strip_prefix"] = strip_prefix
+    package_dir = _normalize_prefix(ctx.attr.package_dir)
+    if package_dir:
+        assignments["package_dir"] = package_dir
     if ctx.attr.mtime:
         assignments["mtime"] = ctx.attr.mtime
     if ctx.attr.preserve_symlinks:
