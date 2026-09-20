@@ -28,17 +28,64 @@ tar(
     mtree = "change_owner",
 )
 ```
+
+### Combining files from several packages
+
+`strip_prefix` keeps only the entries under one prefix, so a single `mtree_mutate` cannot
+relocate files from two packages into the same directory of the tar.
+Instead, give each package its own spec, and merge them with `mtree_concat`.
+Unlike plain concatenation, where bsdtar silently keeps the last of two entries for the same
+path, the merge fails when two packages describe the same file.
+For example, to place `//a:x` and `//b:y` next to each other under `opt/sdk`:
+
+```starlark
+# a/BUILD
+mtree_spec(
+    name = "spec",
+    srcs = ["x"],
+)
+
+mtree_mutate(
+    name = "mtree",
+    mtree = ":spec",
+    package_dir = "opt/sdk",
+    strip_prefix = package_name(),
+)
+
+# b/BUILD: the same, for "y"
+
+# BUILD
+mtree_concat(
+    name = "sdk_mtree",
+    srcs = [
+        "//a:mtree",
+        "//b:mtree",
+    ],
+)
+
+tar(
+    name = "sdk",
+    # every file the specs reference
+    srcs = [
+        "//a:x",
+        "//b:y",
+    ],
+    mtree = ":sdk_mtree",
+)
+```
 """
 
 load("@bazel_skylib//lib:partial.bzl", "partial")
 load("@bazel_skylib//lib:types.bzl", "types")
-load("//tar/private:tar.bzl", _mutate_mtree = "mtree_mutate", _tar_lib = "tar_lib")
+load("//tar/private:tar.bzl", _mtree_concat = "mtree_concat", _mutate_mtree = "mtree_mutate", _tar_lib = "tar_lib")
 
 mtree_spec = rule(
     doc = "Create an mtree specification to map a directory hierarchy. See https://man.freebsd.org/cgi/man.cgi?mtree(8)",
     implementation = _tar_lib.mtree_implementation,
     attrs = _tar_lib.mtree_attrs,
 )
+
+mtree_concat = _mtree_concat
 
 def mtree_mutate(
         name,

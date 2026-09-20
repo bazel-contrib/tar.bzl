@@ -2,6 +2,7 @@ load("@bazel_lib//:bzl_library.bzl", "bzl_library")
 
 exports_files(
     [
+        "concat_mtree.awk",
         "default.awk",
         "modify_mtree.awk",
         "preserve_symlinks.awk",

@@ -630,6 +630,14 @@ def _mtree_impl(ctx):
 
     return DefaultInfo(files = depset([out]), runfiles = ctx.runfiles([out]))
 
+def _normalize_prefix(path):
+    """Strip leading and trailing slashes from a directory prefix.
+
+    The awk pipeline compares and joins prefixes with a single `/`, so it must see `a/b`,
+    never `/a/b` or `a/b/`, regardless of how the user spelled the attribute.
+    """
+    return path.strip("/") if path else ""
+
 def _mtree_mutate_impl(ctx):
     srcs_runfiles = [
         src[DefaultInfo].default_runfiles.files
@@ -654,10 +662,12 @@ def _mtree_mutate_impl(ctx):
         assignments["group"] = ctx.attr.group
     if ctx.attr.groupname:
         assignments["groupname"] = ctx.attr.groupname
-    if ctx.attr.strip_prefix:
-        assignments["strip_prefix"] = ctx.attr.strip_prefix
-    if ctx.attr.package_dir:
-        assignments["package_dir"] = ctx.attr.package_dir.lstrip("/")
+    strip_prefix = _normalize_prefix(ctx.attr.strip_prefix)
+    if strip_prefix:
+        assignments["strip_prefix"] = strip_prefix
+    package_dir = _normalize_prefix(ctx.attr.package_dir)
+    if package_dir:
+        assignments["package_dir"] = package_dir
     if ctx.attr.mtime:
         assignments["mtime"] = ctx.attr.mtime
     if ctx.attr.preserve_symlinks:
@@ -719,6 +729,88 @@ def _mtree_mutate_impl(ctx):
 mtree_mutate = rule(
     implementation = _mtree_mutate_impl,
     attrs = _mutate_mtree_attrs,
+)
+
+_mtree_concat_attrs = {
+    "srcs": attr.label_list(
+        doc = """\
+        mtree specification files, typically outputs of `mtree_spec` or `mtree_mutate`, merged in order.
+
+        Identical duplicate lines are dropped. When two inputs declare the same directory, the
+        entry from the earlier input wins. Any other duplicate path is an error.
+        """,
+        mandatory = True,
+        allow_files = True,
+        allow_empty = False,
+    ),
+    "out": attr.output(
+        doc = "The merged specification. Defaults to `[name].mtree`.",
+    ),
+    "_awk": attr.label(
+        default = "@gawk",
+        cfg = "exec",
+        executable = True,
+    ),
+    "_concat_mtree_awk": attr.label(
+        default = Label("@tar.bzl//tar/private:concat_mtree.awk"),
+        allow_single_file = True,
+    ),
+    "_default_pipeline": attr.label(
+        default = Label("@tar.bzl//tar/private:default.awk"),
+        allow_single_file = True,
+    ),
+}
+
+def _mtree_concat_impl(ctx):
+    out = ctx.outputs.out or ctx.actions.declare_file(ctx.label.name + ".mtree")
+    script = ctx.file._concat_mtree_awk
+    default_pipeline = ctx.file._default_pipeline
+
+    args = ctx.actions.args()
+    args.add_joined(["--file", script], join_with = "=")
+    args.add_all(ctx.files.srcs)
+
+    # The script @include-s "default", so AWKPATH must cover default.awk.
+    awk_dirs = {}
+    for f in [script, default_pipeline]:
+        awk_dirs[f.dirname] = True
+    ctx.actions.run_shell(
+        command = "AWKPATH=\"{awk_path}\" {awk} $@ > {out}".format(
+            awk_path = ":".join(awk_dirs.keys()),
+            awk = ctx.executable._awk.path,
+            out = out.path,
+        ),
+        arguments = [args],
+        inputs = ctx.files.srcs + [script, default_pipeline],
+        outputs = [out],
+        tools = [ctx.executable._awk],
+        mnemonic = "MtreeConcat",
+        progress_message = "Merging %d mtree specs into %s" % (len(ctx.files.srcs), out.short_path),
+    )
+    return [DefaultInfo(files = depset([out]))]
+
+mtree_concat = rule(
+    doc = """\
+Merge several mtree specification files into one.
+
+`mtree_mutate(strip_prefix = ...)` keeps only the entries under a single prefix, so sources
+spread over several Bazel packages cannot be relocated with one mutation. Instead, let each
+package produce its own mutated spec and merge them with this rule; see "Combining files from
+several packages" in the `mtree.bzl` module documentation for an example.
+
+Simply concatenating the specs is not safe: when two inputs describe the same path, bsdtar
+silently keeps the last entry, including its `content=`, so a file from one package can
+replace a file from another without any error. This rule drops identical duplicate lines,
+keeps the first of two directory entries for the same path (each input synthesizes its own
+parent directories), and fails on any other duplicate path, naming both entries.
+
+Inputs are expected to be specs produced by `mtree_spec` or `mtree_mutate`: one entry per
+line. Every line is first normalized by the default `mtree_mutate` pipeline, so every
+directory entry is written as a full entry with a trailing slash, which keeps a bare directory
+line in one input from nesting the lines that follow it.
+""",
+    implementation = _mtree_concat_impl,
+    attrs = _mtree_concat_attrs,
 )
 
 tar_lib = struct(
