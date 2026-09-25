@@ -1059,3 +1059,41 @@ assert_tar_listing(
         "-rwxr-xr-x  0 0      0          28 Jan  1  2023 home/app/nested_dir26/subdir/nested.txt",
     ],
 )
+
+#############
+# Example 27: `archives` copies another archive's entries as they are,
+# modes, owners and symlinks included, here relocated under a new path.
+tar(
+    name = "vendor27",
+    srcs = ["src_file"],
+    out = "vendor27.tar",
+    mtree = [
+        "pkg-1 uid=1000 gid=1000 time=0 mode=0755 type=dir",
+        "pkg-1/bin uid=1000 gid=1000 time=0 mode=0755 type=dir",
+        "pkg-1/bin/tool uid=1000 gid=1000 time=0 mode=0755 type=file content={}/src_file".format(package_name()),
+        "pkg-1/bin/alias uid=1000 gid=1000 time=0 mode=0777 type=link link=tool",
+        "pkg-1/README uid=1000 gid=1000 time=0 mode=0644 type=file content={}/src_file".format(package_name()),
+    ],
+)
+
+tar(
+    name = "tar27",
+    out = "27.tar",
+    archives = [":vendor27"],
+    args = [
+        "-s",
+        "|^pkg-1|usr/local|",
+    ],
+)
+
+assert_tar_listing(
+    name = "test27_archives",
+    actual = ":tar27",
+    expected = [
+        "drwxr-xr-x  0 1000   1000        0 Jan  1  1970 usr/local/",
+        "drwxr-xr-x  0 1000   1000        0 Jan  1  1970 usr/local/bin/",
+        "-rwxr-xr-x  0 1000   1000       21 Jan  1  1970 usr/local/bin/tool",
+        "lrwxrwxrwx  0 1000   1000        0 Jan  1  1970 usr/local/bin/alias -> tool",
+        "-rw-r--r--  0 1000   1000       21 Jan  1  1970 usr/local/README",
+    ],
+)
