@@ -158,6 +158,18 @@ _mtree_attrs = {
         """,
         default = True,
     ),
+    "owner": attr.string(
+        doc = "Numeric user ID (uid) of every entry.",
+        default = "0",
+    ),
+    "group": attr.string(
+        doc = "Numeric group ID (gid) of every entry.",
+        default = "0",
+    ),
+    "mode": attr.string(
+        doc = "Mode of every file entry, e.g. `0644`. Directory entries are always `0755`.",
+        default = "0755",
+    ),
 }
 _mutate_mtree_attrs = {
     "mtree": attr.label(
@@ -514,7 +526,7 @@ def _vis_encode(filename):
     # TODO(#794): correctly encode all filenames by using vis(3) (or porting it)
     return filename.replace(" ", "\\040")
 
-def _add_parent_lines(lines, path, seen_parents):
+def _add_parent_lines(lines, path, seen_parents, uid = "0", gid = "0"):
     parent_lines = []
     for i in range(len(path) - 1, 0, -1):
         if path[i] == "/":
@@ -522,10 +534,10 @@ def _add_parent_lines(lines, path, seen_parents):
             if parent in seen_parents:
                 break
             seen_parents[parent] = True
-            parent_lines.append(_mtree_line(_vis_encode(parent), "dir"))
+            parent_lines.append(_mtree_line(_vis_encode(parent), "dir", uid = uid, gid = gid))
     lines.extend(reversed(parent_lines))
 
-def _expand(file, expander, path = None):
+def _expand(file, expander, path = None, uid = "0", gid = "0", mode = "0755"):
     if not path:
         path = to_repository_relative_path(file)
     lines = []
@@ -534,17 +546,14 @@ def _expand(file, expander, path = None):
     # directories.
     seen_parents = {}
     if not file.is_directory:
-        _add_parent_lines(lines, path, seen_parents)
-        lines.append(_mtree_line(_vis_encode(path), "file", content = _vis_encode(file.path)))
+        _add_parent_lines(lines, path, seen_parents, uid, gid)
+        lines.append(_mtree_line(_vis_encode(path), "file", content = _vis_encode(file.path), uid = uid, gid = gid, mode = mode))
     else:
         for e in expander.expand(file):
             child_path = path + "/" + e.tree_relative_path
-            _add_parent_lines(lines, child_path, seen_parents)
-            lines.append(_mtree_line(_vis_encode(child_path), "file", content = _vis_encode(e.path)))
+            _add_parent_lines(lines, child_path, seen_parents, uid, gid)
+            lines.append(_mtree_line(_vis_encode(child_path), "file", content = _vis_encode(e.path), uid = uid, gid = gid, mode = mode))
     return lines
-
-def _expand_root_symlink(symlink, expander):
-    return _expand(symlink.target_file, expander, symlink.path)
 
 def _map_to_none(_):
     return None
@@ -552,13 +561,19 @@ def _map_to_none(_):
 def _mtree_impl(ctx):
     out = ctx.outputs.out or ctx.actions.declare_file(ctx.attr.name + ".spec")
 
+    # Copy the strings here so that only they, not ctx, are carried into the map_each closures below.
+    uid = ctx.attr.owner
+    gid = ctx.attr.group
+    mode = ctx.attr.mode
+
     content = ctx.actions.args()
     content.set_param_file_format("multiline")
     content.add_all(
         ctx.files.srcs,
-        map_each = _expand,
+        map_each = lambda f, e: _expand(f, e, uid = uid, gid = gid, mode = mode),
         expand_directories = True,
         uniquify = True,
+        allow_closure = True,
     )
 
     if ctx.attr.include_runfiles:
@@ -575,12 +590,12 @@ def _mtree_impl(ctx):
             workspace_name = str(ctx.workspace_name)
             format_each = "{}/%s".format(runfiles_dir)
 
-            content.add(_mtree_line(runfiles_dir, type = "dir"))
+            content.add(_mtree_line(runfiles_dir, type = "dir", uid = uid, gid = gid))
             content.add_all(
                 s.default_runfiles.empty_filenames,
                 format_each = format_each,
                 # be careful about what you pass to map_each as it will carry the data structures over to execution phase.
-                map_each = lambda f, _: _mtree_line(_vis_encode(f[3:] if f.startswith("../") else workspace_name + "/" + f), "file"),
+                map_each = lambda f, _: _mtree_line(_vis_encode(f[3:] if f.startswith("../") else workspace_name + "/" + f), "file", uid = uid, gid = gid, mode = mode),
                 allow_closure = True,
             )
             content.add_all(
@@ -588,7 +603,7 @@ def _mtree_impl(ctx):
                 uniquify = True,
                 format_each = format_each,
                 # be careful about what you pass to map_each as it will carry the data structures over to execution phase.
-                map_each = lambda f, e: _expand(f, e, _to_rlocation_path(f, workspace_name)),
+                map_each = lambda f, e: _expand(f, e, _to_rlocation_path(f, workspace_name), uid = uid, gid = gid, mode = mode),
                 allow_closure = True,
             )
             content.add_all(
@@ -596,19 +611,20 @@ def _mtree_impl(ctx):
                 uniquify = True,
                 format_each = format_each,
                 # be careful about what you pass to map_each as it will carry the data structures over to execution phase.
-                map_each = lambda s, e: _expand(s.target_file, e, s.path[3:] if s.path.startswith("../") else workspace_name + "/" + s.path),
+                map_each = lambda s, e: _expand(s.target_file, e, s.path[3:] if s.path.startswith("../") else workspace_name + "/" + s.path, uid = uid, gid = gid, mode = mode),
                 allow_closure = True,
             )
             content.add_all(
                 s.default_runfiles.root_symlinks,
                 uniquify = True,
                 format_each = format_each,
-                map_each = _expand_root_symlink,
+                map_each = lambda s, e: _expand(s.target_file, e, s.path, uid = uid, gid = gid, mode = mode),
+                allow_closure = True,
             )
 
             if repo_mapping != None:
                 content.add(
-                    _mtree_line(_vis_encode(runfiles_dir + "/_repo_mapping"), "file", content = _vis_encode(repo_mapping.path)),
+                    _mtree_line(_vis_encode(runfiles_dir + "/_repo_mapping"), "file", content = _vis_encode(repo_mapping.path), uid = uid, gid = gid, mode = mode),
                 )
 
             # Register directories that are only indirectly contained in the depsets passed to `add_all`. This is
