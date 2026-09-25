@@ -1059,3 +1059,38 @@ assert_tar_listing(
         "-rwxr-xr-x  0 0      0          28 Jan  1  2023 home/app/nested_dir26/subdir/nested.txt",
     ],
 )
+
+#############
+# Example 27: mtree_spec writes the owner, group and mode given to it, so a spec
+# for files that belong to one user doesn't need a mutation afterwards.
+# Directories keep mode 0755.
+_SRCS27 = [
+    ":fixture1",
+    "src_file",
+]
+
+mtree_spec(
+    name = "mtree27",
+    srcs = _SRCS27,
+    group = "500",
+    mode = "0644",
+    owner = "1000",
+)
+
+tar(
+    name = "tar27",
+    srcs = _SRCS27,
+    out = "27.tar",
+    mtree = ":mtree27",
+)
+
+assert_tar_listing(
+    name = "test27_owner_group_mode",
+    actual = ":tar27",
+    expected = [
+        "drwxr-xr-x  0 1000   500         0 Jan  1  2023 tar/",
+        "drwxr-xr-x  0 1000   500         0 Jan  1  2023 tar/tests/",
+        "-rw-r--r--  0 1000   500         7 Jan  1  2023 tar/tests/generated.txt",
+        "-rw-r--r--  0 1000   500        21 Jan  1  2023 tar/tests/src_file",
+    ],
+)
