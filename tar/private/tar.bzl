@@ -287,6 +287,11 @@ def _fmt_pruanble_inputs_line(file):
     if _is_unprunable(file):
         return None
 
+    # Directories (tree artifacts) are never pruned: Bazel matches unused_inputs_list lines against
+    # the exec paths of the action's top-level inputs, so a tree artifact's children never match.
+    if file.is_directory:
+        return None
+
     # The tar.prunable_inputs.txt file has a two columns:
     #   1. vis-encoded paths of the files, used in comparison
     #   2. un-vis-encoded paths of the files, used for reporting back to Bazel after filtering
@@ -324,12 +329,12 @@ def _configured_unused_inputs_file(ctx, srcs, keep):
     prunable_inputs = ctx.actions.args()
     prunable_inputs.set_param_file_format("multiline")
     prunable_inputs.use_param_file("%s", use_always = True)
-    prunable_inputs.add_all(srcs, map_each = _fmt_pruanble_inputs_line)
+    prunable_inputs.add_all(srcs, map_each = _fmt_pruanble_inputs_line, expand_directories = False)
 
     keep_inputs = ctx.actions.args()
     keep_inputs.set_param_file_format("multiline")
     keep_inputs.use_param_file("%s", use_always = True)
-    keep_inputs.add_all(keep, map_each = _fmt_keep_inputs_line)
+    keep_inputs.add_all(keep, map_each = _fmt_keep_inputs_line, expand_directories = False)
 
     # Unused inputs are inputs that:
     #   * are in the set of PRUNABLE_INPUTS ($1)
