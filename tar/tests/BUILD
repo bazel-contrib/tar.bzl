@@ -466,10 +466,11 @@ mtree_spec(
 
 tar(
     name = "tar15",
-    srcs = [
+    # The srcdir files are not in the output archive, so they are pruned.
+    srcs = glob(["srcdir/**"]) + [
         "treeartifact",
         ":mtree15",  # Not in output archive, but cannot be pruned.
-        ":unused_srcdir",
+        ":unused_srcdir",  # Not in output archive, but tree artifacts are never pruned.
     ],
     out = "15.tar",
     compute_unused_inputs = 1,
@@ -493,9 +494,9 @@ assert_unused_listing(
     name = "test_unused_inputs_listed",
     actual = ":tar15",
     expected = [
-        "tar/tests/unused/info",
-        "tar/tests/unused/pkg",
-        "tar/tests/unused/space in name.txt",
+        "tar/tests/srcdir/info",
+        "tar/tests/srcdir/pkg",
+        "tar/tests/srcdir/space in name.txt",
     ],
 )
 
