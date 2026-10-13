@@ -1,0 +1,18 @@
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("@tar.bzl", "tar")
+
+sh_binary(
+    name = "app",
+    srcs = ["app.sh"],
+    data = glob(
+        ["data/**"],
+        allow_empty = False,
+    ),
+)
+
+tar(
+    name = "app_tar",
+    srcs = [":app"],
+    out = "app.tar",
+    mtree = "auto",
+)
