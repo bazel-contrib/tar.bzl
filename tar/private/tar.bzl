@@ -450,18 +450,18 @@ def _tar_impl(ctx):
 def _mtree_line(file, type, content = None, uid = "0", gid = "0", time = "1672560000", mode = "0755", nlink = "1"):
     if type == "dir" and not file.endswith("/"):
         file += "/"
-    spec = [
+    spec = "{} uid={} gid={} time={} mode={} type={} nlink={}".format(
         file,
-        "uid=" + uid,
-        "gid=" + gid,
-        "time=" + time,
-        "mode=" + mode,
-        "type=" + type,
-        "nlink=" + nlink,
-    ]
+        uid,
+        gid,
+        time,
+        mode,
+        type,
+        nlink,
+    )
     if content:
-        spec.append("content=" + content)
-    return " ".join(spec)
+        spec += " content=" + content
+    return spec
 
 # This function exactly same as the one from "@bazel_lib//lib:paths.bzl"
 # except that it takes workspace_name directly instead of the ctx object.
@@ -478,7 +478,9 @@ def _vis_encode(filename):
 
 def _add_parent_lines(lines, path, seen_parents):
     parent_lines = []
-    for i in range(len(path) - 1, 0, -1):
+
+    # Start at the last separator instead of scanning every filename character.
+    for i in range(path.rfind("/"), 0, -1):
         if path[i] == "/":
             parent = path[:i + 1]
             if parent in seen_parents:
@@ -487,14 +489,14 @@ def _add_parent_lines(lines, path, seen_parents):
             parent_lines.append(_mtree_line(_vis_encode(parent), "dir"))
     lines.extend(reversed(parent_lines))
 
-def _expand(file, expander, path = None):
+def _expand(file, expander, path = None, seen_parents = None, lines = None):
     if not path:
         path = to_repository_relative_path(file)
-    lines = []
+    if lines == None:
+        lines = []
 
-    # The result of this callback is uniquified, so seen_parents is purely an optimization for large
-    # directories.
-    seen_parents = {}
+    if seen_parents == None:
+        seen_parents = {}
     if not file.is_directory:
         _add_parent_lines(lines, path, seen_parents)
         lines.append(_mtree_line(_vis_encode(path), "file", content = _vis_encode(file.path)))
@@ -511,17 +513,36 @@ def _expand_root_symlink(symlink, expander):
 def _map_to_none(_):
     return None
 
+def _expand_files(value, expander):
+    lines = []
+
+    # One set per expansion preserves first-occurrence order without rebuilding
+    # shared directory entries for every file. Never retain it between calls.
+    seen_parents = {}
+    for file in value.files.to_list():
+        path = _to_rlocation_path(file, value.workspace_name) if value.workspace_name != None else None
+        _expand(file, expander, path, seen_parents, lines = lines)
+    return lines
+
+def _add_files(content, files, workspace_name = None, format_each = "%s"):
+    # Register tree artifacts for the write action's directory expander. The
+    # batch below hides its files inside a struct, so Args cannot discover them.
+    # Register only directories to avoid a no-op callback for every regular file.
+    directories = [file for file in files.to_list() if file.is_directory]
+    content.add_all(directories, map_each = _map_to_none)
+    content.add_all(
+        [struct(files = files, workspace_name = workspace_name)],
+        map_each = _expand_files,
+        format_each = format_each,
+        uniquify = True,
+    )
+
 def _mtree_impl(ctx):
     out = ctx.outputs.out or ctx.actions.declare_file(ctx.attr.name + ".spec")
 
     content = ctx.actions.args()
     content.set_param_file_format("multiline")
-    content.add_all(
-        ctx.files.srcs,
-        map_each = _expand,
-        expand_directories = True,
-        uniquify = True,
-    )
+    _add_files(content, depset(ctx.files.srcs))
 
     if ctx.attr.include_runfiles:
         for s in ctx.attr.srcs:
@@ -545,13 +566,11 @@ def _mtree_impl(ctx):
                 map_each = lambda f, _: _mtree_line(_vis_encode(f[3:] if f.startswith("../") else workspace_name + "/" + f), "file"),
                 allow_closure = True,
             )
-            content.add_all(
+            _add_files(
+                content,
                 s.default_runfiles.files,
-                uniquify = True,
+                workspace_name = workspace_name,
                 format_each = format_each,
-                # be careful about what you pass to map_each as it will carry the data structures over to execution phase.
-                map_each = lambda f, e: _expand(f, e, _to_rlocation_path(f, workspace_name)),
-                allow_closure = True,
             )
             content.add_all(
                 s.default_runfiles.symlinks,
