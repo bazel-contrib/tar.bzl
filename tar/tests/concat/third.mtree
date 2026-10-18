@@ -1,0 +1,5 @@
+opt/ type=dir mode=0755 time=1600000000 uname=root
+opt/app/ type=dir mode=0755 time=1600000000 uname=root
+opt/app/c/ type=dir mode=0755 time=1600000000 uname=root
+opt/app/c/z uid=0 gid=0 time=1600000000 mode=0755 type=file nlink=1 content=c/z
+opt/app/b/y uid=0 gid=0 time=1600000000 mode=0755 type=file nlink=1 content=b/y
