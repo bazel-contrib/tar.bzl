@@ -287,6 +287,11 @@ def _fmt_pruanble_inputs_line(file):
     if _is_unprunable(file):
         return None
 
+    # Directories (tree artifacts) are never pruned: Bazel matches unused_inputs_list lines against
+    # the exec paths of the action's top-level inputs, so a tree artifact's children never match.
+    if file.is_directory:
+        return None
+
     # The tar.prunable_inputs.txt file has a two columns:
     #   1. vis-encoded paths of the files, used in comparison
     #   2. un-vis-encoded paths of the files, used for reporting back to Bazel after filtering
@@ -313,33 +318,28 @@ def _configured_unused_inputs_file(ctx, srcs, keep):
 
     coreutils = ctx.toolchains["@bazel_lib//lib:coreutils_toolchain_type"].coreutils_info.bin
 
-    prunable_inputs = ctx.actions.declare_file(ctx.attr.name + ".prunable_inputs.txt")
-    keep_inputs = ctx.actions.declare_file(ctx.attr.name + ".keep_inputs.txt")
     unused_inputs = ctx.actions.declare_file(ctx.attr.name + ".unused_inputs.txt")
 
-    ctx.actions.write(
-        output = prunable_inputs,
-        content = ctx.actions.args()
-            .set_param_file_format("multiline")
-            .add_all(
-            srcs,
-            map_each = _fmt_pruanble_inputs_line,
-        ),
-    )
-    ctx.actions.write(
-        output = keep_inputs,
-        content = ctx.actions.args()
-            .set_param_file_format("multiline")
-            .add_all(
-            keep,
-            map_each = _fmt_keep_inputs_line,
-        ),
-    )
+    # The prunable and keep lists are passed to the action as always-on param files rather than
+    # written with ctx.actions.write. File-write actions always land on the local disk, and for
+    # images the prunable list names every file in the runfiles tree of every layer. Param files of
+    # remotely executed actions are uploaded from memory and never written locally.
+    # Directories are not expanded: a run action may only expand directories that are its inputs, and
+    # the sources are deliberately not inputs of this action.
+    prunable_inputs = ctx.actions.args()
+    prunable_inputs.set_param_file_format("multiline")
+    prunable_inputs.use_param_file("%s", use_always = True)
+    prunable_inputs.add_all(srcs, map_each = _fmt_pruanble_inputs_line, expand_directories = False)
+
+    keep_inputs = ctx.actions.args()
+    keep_inputs.set_param_file_format("multiline")
+    keep_inputs.use_param_file("%s", use_always = True)
+    keep_inputs.add_all(keep, map_each = _fmt_keep_inputs_line, expand_directories = False)
 
     # Unused inputs are inputs that:
-    #   * are in the set of PRUNABLE_INPUTS
+    #   * are in the set of PRUNABLE_INPUTS ($1)
     #   * are not found in any content= or contents= keyword in the MTREE
-    #   * are not in the hardcoded KEEP_INPUTS set
+    #   * are not in the hardcoded KEEP_INPUTS set ($2)
     #
     # Comparison and filtering of PRUNABLE_INPUTS is performed in the vis-encoded representation, stored in field 1,
     # before being written out in the un-vis-encoded form Bazel understands, from field 2.
@@ -351,9 +351,12 @@ def _configured_unused_inputs_file(ctx, srcs, keep):
     #       See also: https://github.com/bazel-contrib/bazel-lib/issues/794
     ctx.actions.run_shell(
         outputs = [unused_inputs],
-        inputs = [prunable_inputs, keep_inputs, ctx.file.mtree],
+        inputs = [ctx.file.mtree],
         tools = [coreutils],
+        arguments = [prunable_inputs, keep_inputs],
         command = '''
+            PRUNABLE_INPUTS="$1"
+            KEEP_INPUTS="$2"
             "$COREUTILS" join -v 1                                                            \\
                 <("$COREUTILS" sort -u "$PRUNABLE_INPUTS")                                    \\
                 <("$COREUTILS" sort -u                                                        \\
@@ -365,8 +368,6 @@ def _configured_unused_inputs_file(ctx, srcs, keep):
         ''',
         env = {
             "COREUTILS": coreutils.path,
-            "PRUNABLE_INPUTS": prunable_inputs.path,
-            "KEEP_INPUTS": keep_inputs.path,
             "MTREE": ctx.file.mtree.path,
             "UNUSED_INPUTS": unused_inputs.path,
         },
