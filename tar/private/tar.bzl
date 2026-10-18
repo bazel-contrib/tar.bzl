@@ -54,6 +54,17 @@ _tar_attrs = {
         """,
         allow_files = True,
     ),
+    "archives": attr.label_list(
+        doc = """\
+        Archives whose entries are copied into the tar as they are: each entry's mode, owner,
+        time and symlink target come from the archive, not from the filesystem.
+
+        Their entries follow the mtree's. Flags in `args` such as `-s` and `--include` apply to them,
+        so an archive can be relocated under a new path, e.g. `args = ["-s", "|^node-v24.0.0-linux-x64|usr/local|"]`.
+        See `@archive` on the bsdtar man page.
+        """,
+        allow_files = True,
+    ),
     "mode": attr.string(
         doc = """A mode indicator from the following list, copied from the tar manpage:
 
@@ -429,6 +440,9 @@ def _tar_impl(ctx):
 
     args.add(ctx.file.mtree, format = "@%s")
     inputs.append(ctx.file.mtree)
+
+    args.add_all(ctx.files.archives, format_each = "@%s")
+    inputs.extend(ctx.files.archives)
 
     repo_mappings = [
         _repo_mapping_manifest(src[DefaultInfo].files_to_run)
