@@ -43,19 +43,28 @@ tar(
 )
 ```
 
-Normally if your tar file is small, you can keep using the built-in gzip, but if your tar file is large, over 1GB, parallel `pigz` will greatly improve the performance.
+Parallel `pigz` can improve compression performance for large archives.
+If your cache uses content-defined chunking (CDC), ordinary streaming compression,
+including built-in gzip, can also reduce chunk reuse after small input changes.
+Use `compress = ""` for uncompressed output, or an rsyncable compressor as below.
+See [compression and CDC](https://github.com/bazel-contrib/tar.bzl#compression-and-content-defined-chunking).
 
 1. Add `pigz` in `MODULE.bazel`; see https://registry.bazel.build/modules/pigz
-2. Use the new tar compressor attribute in your BUILD file, eg:
+2. Configure the external compressor in your BUILD file:
 
 ```starlark
 tar(
     name = "my_tar_file",
+    compress = "gzip",  # Select the .tar.gz output extension.
     compressor = "@pigz",
-    compressor_args = "-n",
+    compressor_args = "-n --rsyncable",
     ...
 )
 ```
+
+`-n` omits the original filename and timestamp. `--rsyncable` uses input-dependent
+block locations to improve chunk reuse across edits, potentially reducing compression
+ratio. It does not guarantee reuse or independently decompressible CDC chunks.
 """
 
 load("@bazel_lib//lib:expand_template.bzl", "expand_template")
