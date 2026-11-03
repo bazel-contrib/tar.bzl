@@ -40,6 +40,46 @@ Use a snippet like the following in `.bazelrc`:
 common --modify_execution_info=Tar=+no-remote-cache
 ```
 
+### Compression and content-defined chunking
+
+If your cache uses content-defined chunking (CDC), such as FastCDC or Bazel's remote
+cache chunking, choose compression carefully. Ordinary streaming compression, including
+the built-in gzip, can change a large part of the compressed byte stream after a small
+input edit. CDC can still split the archive, but may find few unchanged chunks to reuse
+across builds. Reproducible output for identical inputs does not imply stable chunks
+when inputs change.
+
+For chunk reuse, use an uncompressed archive (`compress = ""`), or use a compressor
+with an rsyncable mode. For gzip output, add [pigz](https://registry.bazel.build/modules/pigz)
+to `MODULE.bazel` and configure:
+
+```starlark
+load("@tar.bzl", "tar")
+
+tar(
+    name = "archive",
+    srcs = ["my-file.txt"],
+    compress = "gzip",  # Selects the .tar.gz output extension with an external compressor.
+    compressor = "@pigz",
+    compressor_args = "-n --rsyncable",
+)
+```
+
+This invokes bsdtar with `--use-compress-program "<pigz> -n --rsyncable"`, using the
+declared executable rather than a tool from the host's `PATH`.
+In the [pigz manual](https://zlib.net/pigz/pigz.pdf), `-n` omits the original filename
+and timestamp; `--rsyncable` selects block locations based on input content, helping
+unchanged regions remain reusable after edits. It can reduce compression ratio.
+Reuse still depends on the input changes and cache chunking parameters; compression
+blocks need not align with CDC chunks. Cache chunks are reusable byte ranges, not
+necessarily independently decompressible archives.
+
+Compression defaults are unchanged: the `tar` macro selects built-in gzip in `-c opt`
+and no compression otherwise. The built-in gzip has no rsyncable option; enabling it
+by default would require a different compressor dependency or changes to libarchive.
+External compressors accept different flags, so `--rsyncable` cannot safely be added
+to every `compressor` invocation. Choose it explicitly when chunk reuse matters.
+
 ## Examples
 
 - Migrate from `pkg_tar`: https://github.com/bazel-contrib/tar.bzl/blob/main/examples/migrate-rules_pkg/BUILD

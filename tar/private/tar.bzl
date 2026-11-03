@@ -88,17 +88,24 @@ _tar_attrs = {
         Compress the archive file with a supported algorithm.
 
         Default is `""` which means no compression.
+        The `tar` macro defaults to gzip in opt mode and no compression otherwise.
+        Ordinary streaming compression can reduce content-defined chunk reuse after edits.
+        For chunk reuse, use no compression or an external rsyncable compressor.
         """,
         default = "",
         values = _ACCEPTED_COMPRESSION_TYPES,
     ),
     "compressor": attr.label(
-        doc = "External tool which can compress the archive.",
+        doc = """External tool which can compress the archive, overriding the built-in compressor.
+        `compress` still determines the default output extension.
+        For gzip output with better content-defined chunk reuse, use pigz with
+        `compressor_args = "-n --rsyncable"` and `compress = "gzip"`.
+        """,
         executable = True,
         cfg = "exec",
     ),
     "compressor_args": attr.string(
-        doc = "Arg list for `compressor`.",
+        doc = "Arg list for `compressor`. Flags are tool-specific; for pigz, use `-n --rsyncable` to omit filename/timestamp and improve chunk reuse after edits.",
     ),
     "compute_unused_inputs": attr.int(
         doc = """

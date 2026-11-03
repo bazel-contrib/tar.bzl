@@ -48,11 +48,14 @@ tar(
 )
 
 ########### compression options ################
+# Omit filename/timestamp and use input-dependent compression block boundaries
+# so caches using content-defined chunking can reuse more data after edits.
+# See https://github.com/bazel-contrib/tar.bzl#compression-and-content-defined-chunking
 pkg_tar(
     name = "old3",
     srcs = [":static"],
     compressor = "@pigz",
-    compressor_args = "-n",
+    compressor_args = "-n --rsyncable",
     mode = "0755",
 )
 
@@ -60,8 +63,9 @@ pkg_tar(
 tar(
     name = "new3",
     srcs = [":static"],
+    compress = "gzip",  # Select the .tar.gz output extension.
     compressor = "@pigz",
-    compressor_args = "-n",
+    compressor_args = "-n --rsyncable",
     mutate = DEFAULT_MUTATIONS,
 )
 
