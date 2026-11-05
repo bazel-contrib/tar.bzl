@@ -8,22 +8,10 @@
         } else if (index($1, strip_prefix) == 1) {
             # this line starts with the strip_prefix
             sub("^" strip_prefix "/", "");
-
-            # NOTE: The mtree format treats file paths without slashes as "relative" entries.
-            #       If a relative entry is a directory, then it will "change directory" to that
-            #       directory, and any subsequent "relative" entries will be created inside that
-            #       directory. This causes issues when there is a top-level directory that is
-            #       followed by a top-level file, as the file will be created inside the directory.
-            #       To avoid this, we append a slash to the directory path to make it a "full" entry.
-            components = split($1, _, "/");
-            if ($0 ~ /type=dir/ && components == 1) {
-                if ($0 !~ /^ /) {
-                    $1 = $1 "/";
-                }
-                else {
-                    # this line is the root directory and only contains orphaned keywords, which will be discarded
-                    next;
-                }
+            if ($0 ~ /^ /) {
+                # this line was the root directory, written with a trailing slash, and now only
+                # contains orphaned keywords. It will be discarded.
+                next;
             }
         } else {
             # this line declares some path under a parent directory, which will be discarded
@@ -65,7 +53,8 @@
         if (ownername != "") ownership_attrs = ownership_attrs " uname=" ownername
         if (groupname != "") ownership_attrs = ownership_attrs " gname=" groupname
 
-        # First ensure parent directories exist
+        # First ensure parent directories exist. They are written with a trailing slash, see the
+        # NOTE on directory entries below.
         if (!package_dir_dirs_emitted) {
             split(package_dir, dirs, "/")
             path = ""
@@ -75,11 +64,21 @@
                 } else {
                     path = path "/" dirs[i]
                 }
-                print path " type=dir mode=0755 time=" default_time ownership_attrs
+                print path "/ type=dir mode=0755 time=" default_time ownership_attrs
             }
             package_dir_dirs_emitted = 1
         }
         sub(/^/, package_dir "/")
     }
 
+    # NOTE: The mtree format treats paths without slashes as "relative" entries. A relative entry
+    #       that is a directory "changes directory", and every later relative entry is created
+    #       inside it. So a top-level directory followed by a top-level file puts the file inside
+    #       the directory, and a directory line repeated by a second spec appended to this one
+    #       nests as `opt/opt`. To avoid this, every directory entry is written with a trailing
+    #       slash, which makes it a "full" entry, as mtree_spec already does.
+    #       Lines starting with `/` are mtree "special" commands and are left alone.
+    if ($0 ~ /(^|[[:space:]])type=dir([[:space:]]|$)/ && $1 !~ /\/$/ && $1 !~ /^\//) {
+        $1 = $1 "/";
+    }
 }
