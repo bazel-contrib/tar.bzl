@@ -74,8 +74,13 @@ Reuse still depends on the input changes and cache chunking parameters; compress
 blocks need not align with CDC chunks. Cache chunks are reusable byte ranges, not
 necessarily independently decompressible archives.
 
-Compression defaults are unchanged: the `tar` macro selects built-in gzip in `-c opt`
-and no compression otherwise. The built-in gzip has no rsyncable option; enabling it
+By default, the `tar` macro selects built-in gzip in `-c opt` and no compression
+otherwise. Set `--@tar.bzl//tar:default_compression=zstd` (or another supported
+format, or `none`) to choose a default for all `tar` targets. An explicit
+`compress` attribute takes precedence. Changing the default also changes the
+inferred output extension, so consumers must support the selected format.
+
+The built-in gzip has no rsyncable option; enabling it
 by default would require a different compressor dependency or changes to libarchive.
 External compressors accept different flags, so `--rsyncable` cannot safely be added
 to every `compressor` invocation. Choose it explicitly when chunk reuse matters.

@@ -168,6 +168,19 @@ def tar(name, mtree = "auto", mutate = None, include_runfiles = None, stamp = 0,
     tar_rule(
         name = name,
         mtree = mtree_target,
-        compress = kwargs.pop("compress", select({Label(":compilation_mode.opt"): "gzip", "//conditions:default": None})),
+        compress = kwargs.pop("compress", select({
+            Label(":compression.auto.opt"): "gzip",
+            Label(":compression.none"): "",
+            Label(":compression.bzip2"): "bzip2",
+            Label(":compression.compress"): "compress",
+            Label(":compression.gzip"): "gzip",
+            Label(":compression.lrzip"): "lrzip",
+            Label(":compression.lz4"): "lz4",
+            Label(":compression.lzma"): "lzma",
+            Label(":compression.lzop"): "lzop",
+            Label(":compression.xz"): "xz",
+            Label(":compression.zstd"): "zstd",
+            "//conditions:default": "",
+        })),
         **kwargs
     )
