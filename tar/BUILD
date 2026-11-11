@@ -1,5 +1,5 @@
 load("@bazel_lib//:bzl_library.bzl", "bzl_library")
-load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
+load("@bazel_skylib//rules:common_settings.bzl", "bool_flag", "string_flag")
 
 bool_flag(
     name = "tar_compute_unused_inputs",
@@ -13,6 +13,52 @@ bool_flag(
     # Opt-in: when enabled, the tar rule creates a validation action that
     # checks the mtree for reproducible file metadata.
     build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
+string_flag(
+    name = "default_compression",
+    build_setting_default = "auto",
+    values = [
+        "auto",
+        "none",
+        "bzip2",
+        "compress",
+        "gzip",
+        "lrzip",
+        "lz4",
+        "lzma",
+        "lzop",
+        "xz",
+        "zstd",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+[
+    config_setting(
+        name = "compression." + value,
+        flag_values = {":default_compression": value},
+        visibility = ["//visibility:public"],
+    )
+    for value in [
+        "none",
+        "bzip2",
+        "compress",
+        "gzip",
+        "lrzip",
+        "lz4",
+        "lzma",
+        "lzop",
+        "xz",
+        "zstd",
+    ]
+]
+
+config_setting(
+    name = "compression.auto.opt",
+    flag_values = {":default_compression": "auto"},
+    values = {"compilation_mode": "opt"},
     visibility = ["//visibility:public"],
 )
 

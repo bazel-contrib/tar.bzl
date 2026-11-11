@@ -6,6 +6,7 @@ load("@bazel_skylib//rules:write_file.bzl", "write_file")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@tar.bzl", "mtree_mutate", "mtree_spec", "tar")
 load(":asserts.bzl", "assert_tar_listing", "assert_unused_listing")
+load(":compression_defaults_test.bzl", "auto_fast_test", "auto_opt_test", "none_opt_test", "zstd_fast_test", "zstd_opt_test")
 load(":cross_repo_symlink.bzl", "cross_repo_symlink")
 load(":directory.bzl", "directory")
 load(":node_modules_tree.bzl", "node_modules_tree")
@@ -1058,4 +1059,64 @@ assert_tar_listing(
         "drwxr-xr-x  0 0      0           0 Jan  1  2023 home/app/nested_dir26/subdir/",
         "-rwxr-xr-x  0 0      0          28 Jan  1  2023 home/app/nested_dir26/subdir/nested.txt",
     ],
+)
+
+# The workspace default must not override an explicit compression choice.
+tar(
+    name = "compression_default_fixture",
+    srcs = ["src_file"],
+)
+
+tar(
+    name = "compression_explicit_fixture",
+    srcs = ["src_file"],
+    compress = "gzip",
+)
+
+auto_fast_test(
+    name = "compression_auto_fast_test",
+    expected_suffix = ".tar",
+    target_under_test = ":compression_default_fixture",
+)
+
+auto_opt_test(
+    name = "compression_auto_opt_test",
+    expected_suffix = ".tar.gz",
+    target_under_test = ":compression_default_fixture",
+)
+
+zstd_fast_test(
+    name = "compression_zstd_fast_test",
+    expected_suffix = ".tar.zst",
+    target_under_test = ":compression_default_fixture",
+)
+
+zstd_opt_test(
+    name = "compression_zstd_opt_test",
+    expected_suffix = ".tar.zst",
+    target_under_test = ":compression_default_fixture",
+)
+
+none_opt_test(
+    name = "compression_none_opt_test",
+    expected_suffix = ".tar",
+    target_under_test = ":compression_default_fixture",
+)
+
+zstd_opt_test(
+    name = "compression_explicit_test",
+    expected_suffix = ".tar.gz",
+    target_under_test = ":compression_explicit_fixture",
+)
+
+tar(
+    name = "compression_explicit_none_fixture",
+    srcs = ["src_file"],
+    compress = "",
+)
+
+zstd_opt_test(
+    name = "compression_explicit_none_test",
+    expected_suffix = ".tar",
+    target_under_test = ":compression_explicit_none_fixture",
 )
