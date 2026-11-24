@@ -30,5 +30,4 @@ the test matrix. GitHub Actions retains the macOS tests because this pipeline
 only tests Linux. Its pre-commit job includes Buildifier formatting and lint
 checks, so a separate Buildifier workflow is redundant. The stable `conclusion`
 job gates the GitHub Actions checks. Release and publishing workflows also
-remain in GitHub Actions. Aspect Workflows configuration lives in
-`.aspect/workflows/config.yaml`.
+remain in GitHub Actions.
