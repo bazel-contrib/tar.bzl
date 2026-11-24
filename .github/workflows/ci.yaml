@@ -17,7 +17,7 @@ jobs:
   test:
     strategy:
       matrix:
-        # Note: linux is tested on Buildkite via Aspect Workflows
+        # Linux workspace/version coverage lives in .buildkite/pipeline.py.
         os:
           - macos-latest
           # TODO: Windows was disabled in the original bazel-lib location where tar was tested:
@@ -29,6 +29,7 @@ jobs:
       - uses: bazel-contrib/setup-bazel@0.15.0
       - run: bazel test //...
   pre-commit:
+    # Includes Buildifier formatting and lint checks.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
