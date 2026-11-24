@@ -35,7 +35,7 @@ def pipeline():
     ]
     # The smoke workspace also exercises legacy WORKSPACE dependency resolution.
     steps.append(test_step("e2e/smoke", "7.x", legacy_workspace=True))
-    return {"agents": {"queue": "default"}, "steps": steps}
+    return {"steps": steps}
 
 
 if __name__ == "__main__":
