@@ -1059,3 +1059,37 @@ assert_tar_listing(
         "-rwxr-xr-x  0 0      0          28 Jan  1  2023 home/app/nested_dir26/subdir/nested.txt",
     ],
 )
+
+cross_repo_symlink(
+    name = "to_generated_external",
+    target = "@tar_bzl_test_symlink_repo//:generated",
+)
+
+mtree_spec(
+    name = "generated_external_mtree",
+    srcs = [":to_generated_external"],
+)
+
+mtree_mutate(
+    name = "generated_external_preserved",
+    srcs = [":to_generated_external"],
+    mtree = ":generated_external_mtree",
+    preserve_symlinks = True,
+)
+
+tar(
+    name = "generated_external_tar",
+    srcs = [":to_generated_external"],
+    mtree = ":generated_external_preserved",
+)
+
+assert_tar_listing(
+    name = "test_preserve_generated_external_file_and_symlink",
+    actual = ":generated_external_tar",
+    expected = [
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/",
+        "drwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/",
+        "lrwxr-xr-x  0 0      0           0 Jan  1  2023 tar/tests/to_generated_external_link -> ../../generated.txt",
+        "-rwxr-xr-x  0 0      0          18 Jan  1  2023 generated.txt",
+    ],
+)

@@ -147,8 +147,11 @@ function make_relative_link(path1, path2, i, common, target, relative_path, back
                     #    python-build-standalone's interpreter tree).
                     # Normalise to the execroot-relative form the mtree's
                     # `content=` fields use so `symlink_map` lookups match.
-                    sub(/^.*\/bazel-out\//, "bazel-out/", resolved_path)
-                    sub(/^.*\/external\//, "external/", resolved_path)
+                    if (resolved_path ~ /\/bazel-out\/[^\/]+\/bin\//) {
+                        sub(/^.*\/bazel-out\//, "bazel-out/", resolved_path)
+                    } else {
+                        sub(/^.*\/external\//, "external/", resolved_path)
+                    }
                     if (path != resolved_path) {
                         symlink = resolved_path
                         symlink_content = path
